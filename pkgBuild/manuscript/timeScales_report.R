@@ -1,5 +1,5 @@
 #' ---
-#' title: "The influence of sampling frequency on statistical indicators of declining resilience"
+#' title: "The time scale of resilience loss: the effect of sampling frequency on an early warning statistic"
 #' author: "Ryan Batt"
 #' date: "2017-08-21"
 #' abstract: |
@@ -108,8 +108,8 @@ detrend <- function(x, time=1:length(x)){
 # @export
 ac1 <- function(x, ...){	
 	# # option 1
-	# l2 <- embed(x, 2)
-	# ac <- cor(l2[,1], l2[,2])
+	l2 <- embed(x, 2)
+	ac <- cor(l2[,1], l2[,2], use="na.or.complete")
 	#
 	# # option 2
 	# ac <- ar(x, order.max=1)$ar # returns numeric(0) if nothing fit
@@ -121,13 +121,22 @@ ac1 <- function(x, ...){
 	# option 4
 	# detX <- detrend(x)
 	# if(all(is.na(x))){return(NA)}
-	l2 <- stats::embed(x, 2)
-	ac <- tryCatch(stats::lm(I(l2[,1]) ~ I(l2[,2]))$coef[2], error=function(cond)NA)
+#	# l2 <- stats::embed(x, 2)
+#	# ac <- tryCatch(stats::lm(I(l2[,1]) ~ I(l2[,2]))$coef[2], error=function(cond)NA)
 	
 	# # option 4
 	# l2 <- embed(x, 2)
 	# out <- RollingWindow::RollingCorr(l2[,2], l2[,1], window=win)
 	
+	return(ac)
+}
+
+ac_sub <- function(x, n, phase, ...){
+	l2 <- embed(x, 2)
+	row_vec <- seq_len(nrow(l2))
+	row_ind <- sub_samp(row_vec, n=n, phase=phase)
+	l2_sub <- l2[row_ind, ]
+	ac <- cor(l2[,1], l2[,2], use="na.or.complete")
 	return(ac)
 }
 
@@ -139,13 +148,21 @@ roundGrid <- function(x, frac=1){
 	floor(x/frac)*frac+frac/2
 }
 
-roll_ts <- function(y, width=288, na.rm=TRUE, FUN=mean, x){
+roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
 	buff <- rep(NA, width-1)
-	mat <- embed(y, width)
-	agg <- c(buff, apply(mat, 1, FUN, na.rm=na.rm))
+	if(by > 1){
+		mat <- sub_embed(y, width=width, n=by) 
+	}else{
+		mat <- embed(y, width)
+	}
+	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN, ...))
 	if(!missing(x)){
-		mat2 <- embed(x, width)
-		agg2 <- c(buff, apply(mat2, 1, max, na.rm=na.rm))
+		if(by > 1){
+			mat2 <- sub_embed(x, width=width, n=by) 
+		}else{
+			mat2 <- embed(x, width)
+		}
+		agg2 <- c(buff, apply(mat2, 1, max, na.rm=TRUE))
 		data.table(x=agg2, y=agg)
 	}else{
 		agg
@@ -177,6 +194,32 @@ agg_ts <- function(x, y, width=288, na.rm=TRUE, FUN=mean){
 	frac <- width/tot
 	dt <- data.table(x=roundGrid(x, frac), y=y)
 	dto <- dt[,list(y=FUN(y, na.rm=na.rm), N=sum(!is.na(y))), by=x]
+}
+
+sub_samp <- function(x, n, phase=1){
+	if(phase!=n){
+		phase <- max(1, phase%%n) # ensures 1 ≤ phase ≤ n; keeps starting elements when phase > n, unlike min(phase,n)
+	}
+	vec <- rep(FALSE, n)
+	vec[phase] <- TRUE
+	x[vec]
+}
+
+#' Embed and Subsample a Time Series
+#' 
+#' Embed a time series like in \code{\link{embed}}, and then subsample the rows of that resulting matrix.
+#' 
+#' @param x numeric vector
+#' @param width integer size of window/ embedding dimension
+#' @param n integer, sample every nth element of \code{x}
+#' @param phase integer, start subsampling sequency on the nth element of \code{x}
+#' 
+#' @return matrix
+sub_embed <- function(x, width=1, n=1, phase=1){
+	emat <- embed(x, dimension=width)
+	row_vec <- seq_len(nrow(emat))
+	row_ind <- sub_samp(row_vec, n=n, phase=phase)
+	return(emat[row_ind, ])
 }
 #'   
 #' \FloatBarrier  
@@ -322,8 +365,87 @@ sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type
 #'   
 #' I need to think more about these results, because this second outcome was not quite expected. Ideally, all 3 panels would cover the same period of time **and** have the same number of data points. A better approach to try next would be to use down-sampling (instead of averaging, just sample every Nth data point) to calculate the AC statistic. This approach could be done in a bootstrapping type approach, where every Nth sample is used, and the time series resampled N times (but not randomly, so that all data are used). E.g., sample every N points starting with the Mth observation, then every N points starting with M+1, and so on.  
 #'   
-#' Thus far, these results are very interesting. There are two important messages so far. 1) if you can collect high-frequency (which is becoming more and more common due to advances in sensor technologies) do it, because you can just increase the window size when calculating your AC EWS statistic and get a have more power for that calculation (more data points); 2) You don't have to worry too much about the effects of data aggregation when calculating your statistic --- you can use the points separately or in aggregate, and you apparently get very similar results. This is good news if you are worried about computation time, or simply don't want to worry about having to fine-tune another user-defined parameter when computing EWS. This result earns EWS a point for user-friendliness!  
+#' Thus far, these results are very interesting. **There are two important messages so far.** 1) if you can collect high-frequency (which is becoming more and more common due to advances in sensor technologies) do it, because you can just increase the window size when calculating your AC EWS statistic and get a have more power for that calculation (more data points); 2) You don't have to worry too much about the effects of data aggregation when calculating your statistic --- you can use the points separately or in aggregate, and you apparently get very similar results. This is good news if you are worried about computation time, or simply don't want to worry about having to fine-tune another user-defined parameter when computing EWS. This result earns EWS a point for user-friendliness!  
 #'   
+
+#' ###Fixed Window Time & Size (subsampling)
+#'   
+#'   
+#' When sampling a variable over a particular window of time (say, August 2017), varying the sampling resolution changes affects both time scale and sample size. It affects time scale because adjacent measurements are closer together in high resolution data. If affects sample size because there will be more samples in high resolution data.  
+#'   
+#' If my goal is to understand how time scale influences autocorrelation (the correlation between adjacent samples, aka AR(1) aka AC), I need to control for the effect of sample size.  
+#'   
+#' Aggregating data to a coarser time scale (e.g., taking a daily average) still makes use of the larger sample size by incorporating the additional samples into the aggregated statistic. The solution here is to subsample the high-frequency time series instead of aggregating it. By subsampling, we can use an original high-frequency time series to create additional time series of varying resolutions w/o incorporating variable amounts of information into each element of the coarser series.  
+#'   
+#' When we go to calculate a rollowing window statistic, we immediate run into an issue where it is not immediately obvious whether the "window size" should be interpreted as maining a constant number of observations (e.g., 24 data points) across time series of different resolutions, or if it should be interpreted to reflect a constant period of elapsed time (e.g., 24 hours). If we set the window to reflect a constant period of time (24 hr), then the high-resolution series will have more data point per window, inflating the sample size of the statistic applied to that window. If we set the window to reflect a constant number of observations (e.g., 24 points), then the high resolution series will not cover as much time, and therefore summary statistics will not be exposed to the same overarching dynamics when they are computed.  
+#'   
+#' To resolve these issues of window size across time series of varying resolution, I used a fixed-time-elapsed window, and then I reduced (subsampled) the number of data points used in the calculation of the windowed summary statistic. For example, for a time series with twice the resolution of a reference series, I would halve the number of data points used in calculating the summary statistic in each window. This process becomes extra tricky for autocorrelation --- in the previous example, one cannot simply use every other observation, because this would be akin to calculating lag-2 autocorrelation, not calculating lag-1 autocorrelation for half as many points. In order to calculate lag-1 autocorrelation I put all pairs of temporally adjacent observations in a 2-column matrix (one column for each observation forming the 'pair'), and subsampled to every other (or every nth) row. I think calculated the (auto)correlation between those two columns. I now have a lag-1 AC statistic that was claculated from half as many "pairs" of observations. Note that in this particular example all points in the subsampled time series would contribute to the AC statistic, but if 2-column matrix wasn't again subsampled then each point would contribute twice. E.g., if I had a series 1,2,3,4,5,6,7,8,9,10,11,12, I would subsample it to 1,3,5,7,9,11. Then, instead of calculating the correlation between the columns of $\begin{matrix} 1 & 3 \\ 3 & 5 \\ 5 & 7 \\ 7 & 9\\ \end{matrix}$, I'd calculate it between the columns of  $\begin{matrix} 1 & 3 \\ 5 & 7 \\ \end{matrix}$ (of course, there'd hopefully be more than 2 rows in the resultant matrix, this is just an example). Further note that in the general case of subsample to every nth point, not all points are typically included. E.g., if we were subsampling to every 3rd point b/c the high-resolution time series was sampled 3 x's as often, the subsampled matrix of the previous example would be $\begin{matrix} 1 & 3 \\ 7 & 9\\ \end{matrix}$ (again note that the number of rows depends on the length of time series).  
+#' 
+#' In addition controling for sample size in the summary statistic, I also needed to control for the number of windows. Even if a window covers a fixed period of time, and if the statistic applied to that window uses a fixed number of observations, a high-resolution time series will still contain more potential windows. As a result, there will be a larger number of AC summary statistics in the resultant AC time series. If trend statistics like a linear regression of Kendall's tau are applied to this high-res AC series, then it'll have more power (more AC estimates) than an AC series based on a lower-res time series. This solution is easy: when applying the rolling window, increment the window by the same interval used in the autocorrelation subsampling (normally windows are incremented by 1 time step). I.e., if the series has twice the resolution, increment the window by 2.   
+#'   
+#' In summary, I took the following 3 steps to control for sample size when investigating the influence of time scales on time series of different resolutions:  
+#'     1. I created time series of different resolutions by using subsampling, not aggregating.  
+#'     2. When calculating rolling window statistics, I subsampled again within each window, being sure to preserve the adjacency structure of the subsampled time series.  
+#'     3. Lastly, I instead of incrementing the rolling window by 1, I incremented by the same interval used in subsampling.  
+#'   
+
+
+#+ subSamp-chla-3
+sos_ss_12 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=12), y=sub_samp(x=chla, n=12))]
+sos_ss_144 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=144), y=sub_samp(x=chla, n=144))]
+sos_ss_288 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=288), y=sub_samp(x=chla, n=288))]
+
+sos_ss_ac1_12 <- list()
+sos_ss_ac1_144 <- list()
+sos_ss_ac1_288 <- list()
+
+#+ rollingAC-subData-fullStat-fullWindow
+sos_ss_ac1_12[['fSfW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*12*2)}]
+sos_ss_ac1_144[['fSfW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2)}]
+sos_ss_ac1_288[['fSfW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+
+#+ rollingAC-subData-subStat-fullWindow
+sos_ss_ac1_12[['sSfW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*12*2, by=1, n=24, phase=1)}]
+sos_ss_ac1_144[['sSfW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*2, by=1, n=2, phase=1)}]
+sos_ss_ac1_288[['sSfW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+
+#+ rollingAC-subData-fullStat-subWindow
+sos_ss_ac1_12[['fSsW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*12*2, by=24)}]
+sos_ss_ac1_144[['fSsW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2, by=2)}]
+sos_ss_ac1_288[['fSsW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+
+#+ rollingAC-subSample-subStat-subWindow
+sos_ss_ac1_12[['sSsW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*12*2, by=24, n=24, phase=1)}]
+sos_ss_ac1_144[['sSsW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*2, by=2, n=2, phase=1)}]
+sos_ss_ac1_288[['sSsW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+
+#+ rollingAC-subSample-fig, fig.width=6.5, fig.height=6, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the amount of subsampling applied before calculating statistic. AC statistic is calculated over the same duration of time in each panel.", results='hide'
+par(mfcol=c(3,4), mar=c(2.5, 1.75, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
+sos_ss_ac1_12[['fSfW']][,plot(x, y, xlab="", ylab="AC(1) for Peter Chla (1-hr res)", type='l')]
+mtext("Full Stat, Full Win", side=3, line=0, font=2)
+sos_ss_ac1_144[['fSfW']][,plot(x, y, xlab="", ylab="AC(1) Peter Chla (12-hr res)", type='l')]
+sos_ss_ac1_288[['fSfW']][,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24-hr res)", type='l')]
+
+sos_ss_ac1_12[['sSfW']][,plot(x, y, xlab="", ylab="", type='l')]
+mtext("Sub Stat, Full Win", side=3, line=0, font=2)
+sos_ss_ac1_144[['sSfW']][,plot(x, y, xlab="", ylab="", type='l')]
+sos_ss_ac1_288[['sSfW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
+
+sos_ss_ac1_12[['fSsW']][,plot(x, y, xlab="", ylab="", type='l')]
+mtext("Full Stat, Sub Win", side=3, line=0, font=2)
+sos_ss_ac1_144[['fSsW']][,plot(x, y, xlab="", ylab="", type='l')]
+sos_ss_ac1_288[['fSsW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
+
+sos_ss_ac1_12[['sSsW']][,plot(x, y, xlab="", ylab="", type='l')]
+mtext("Sub Stat, Sub Win", side=3, line=0, font=2)
+sos_ss_ac1_144[['sSsW']][,plot(x, y, xlab="", ylab="", type='l')]
+sos_ss_ac1_288[['sSsW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
+
+#' Of all the changes I made in this section relative to previous sections, I think the alteration with the biggest impact was not aggregating the original time series (e.g., daily average), and instead subsampling the original time series (e.g., one sample per day). In this round of results, I am most surprised that, when calculating the windowed AC statistic, using the full windowed series (much larger sample size for high-res time series) was not very different from using the subsampled series. Previously, my best guess as to why the high-res time series performed so well -- arguably *better* than the daily average -- in the fixed-time-elapsed + hourly-average scenario was because each calculation of AC had so many more observations available. This does not appear to be the case any longer. In the "Full Stat" columns of the above figure, the top row (hourly) has 24-times as many data points per AC calculation relative to the bottom row (daily). But apparently sample size supplied to the AC statistic is **not** the what was giving the high-frequency data such good performance in the early analyses.  
+#'   
+#' For next steps I need to 1) check my code; 2) try higher- and lower- resolutions than what I'm using here in order to "break" the AC indicator (get it to not show a warning); 3) If I can't "break" the indicator, I should apply & read about DFA (I'm thinking that if I can't break AC, then it is scale-free, though I'm pretty sure that DFA as a warning just means that the scale-free property changes [decays?] as the tipping point is approach, and in that case, DFA wouldn't tell me what I want to know); 4) after 2&3, plot a heat map of the ACF (`acf()`), because that will explicitly show me how AC is changing over time and across time scales. My guess is that this is essentially going to be identical to a heat map based on `spec.ar()`.  
+
+
 #' \FloatBarrier  
 #'   
 #' ***  
@@ -331,6 +453,7 @@ sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type
 
 
 #' #A General Method for Determining Time Scale
+#' For this I think I need to check out `fractal::timeLag`! (https://www.rdocumentation.org/packages/fractal/versions/2.0-1/topics/timeLag)
 
 #'   
 #' \FloatBarrier  
