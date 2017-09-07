@@ -145,7 +145,7 @@ ac_sub <- function(x, n, phase, ...){
 roundGrid <- function(x, frac=1){
 	# if frac is 1, then place in a 1º grid
 	# if frac is 0.5, then place in the 0.5º grid
-	floor(x/frac)*frac+frac/2
+	floor(round(x/frac, 6))*frac+frac/2
 }
 
 roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
