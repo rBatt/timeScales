@@ -234,7 +234,8 @@ setnames(sos,
 	old=c("Year", "Lake", "DoY", "DateTime", "Temp_HYLB", "Chla_Conc_HYLB", "BGA_Conc_HYLB"),
 	new=c("year","lake","doy","datetime","wtr","chla","bga")
 ) # shorter names
-
+sos[,bga:=as.numeric(bga)]
+sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))
 # just a few handy summaries for use in graphing (x and y limits)
 doy_range <- sos[,range(doy, na.rm=TRUE)]
 chla_range <- sos[,range(chla, na.rm=TRUE)]
