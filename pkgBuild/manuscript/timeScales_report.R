@@ -304,10 +304,40 @@ sos_144 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=144)]
 sos_288 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=288)]
 
 #+ rollingAvg-chla-3-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling averages of chlorophyll in Peter Lake. The window size for the rolling average varies among panels.", results='hide'
-par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sos_12[,plot(x, y, xlab="DoY", ylab="Peter Chla (1 hr avg)", type='l')]
-sos_144[,plot(x, y, xlab="DoY", ylab="Peter Chla (12 hr avg)", type='l')]
-sos_288[,plot(x, y, xlab="DoY", ylab="Peter Chla (24 hr avg)", type='l')]
+interval_name <- function(x){
+	# assumes 5 minute data
+	interv <- x*5
+	if(interv < 60){
+		unit <- "min"
+		val <- interv
+	}else if(interv >= 60 & interv < 1440){
+		unit <- "hr"
+		val <- round(interv/60, 2)
+	}else{
+		unit <- "day"
+		val <- round(interv/60/24, 2)
+	}
+	iname <- paste(val, unit, sep="-")
+	return(iname)
+}
+
+plot_agg_ts <- function(steps, ln="Peter", vn="chla"){
+	ns <- length(steps)
+	par(mfrow=c(ns,1), mar=c(1.75, 1.75, 1, 0.25), oma=c(1,0.1,0.1,0.1), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
+	for(s in 1:ns){
+		iname <- interval_name(steps[s])
+		tdat <- sos_agg[[paste0("agg",steps[s])]][lake==ln & variable==vn]
+		ylab <- paste0(ln, " ", vn, " (", iname, " avg)")
+		plot(tdat[,x], tdat[,y], xlab="", ylab=ylab, type='l')
+	}
+	mtext("Day of Year", side=1, outer=TRUE, line=0.1)
+}
+
+plot_agg_ts(agg_steps)
+#
+# sos_12[,plot(x, y, xlab="DoY", ylab="Peter Chla (1 hr avg)", type='l')]
+# sos_144[,plot(x, y, xlab="DoY", ylab="Peter Chla (12 hr avg)", type='l')]
+# sos_288[,plot(x, y, xlab="DoY", ylab="Peter Chla (24 hr avg)", type='l')]
 #'   
 #'   
 #' The longer the window for the rolling average, the smoother the time series. There is a lot of high-frequency variability ("noise"). Performing a non-overlapping rolling mean (non-overlapping because a dataum is never used for more than 1 over the averages/ in more than 1of the windows) causes upward and downward fluctuations to "cancel out", producing a smoother time series. The larger the window, the larger the sample size that goes into each average, and the smoother the result.
