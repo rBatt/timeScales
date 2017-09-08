@@ -72,9 +72,18 @@ opts_chunk$set(
 # setwd("~/Documents/School&Work/epaPost/timeScales/pkgBuild/manuscript")
 # source("../manuscript/manuscript_figures_functions.R")
 
+#' #Options
+#+ options
+win_days <- 28 # window size in days covered
+agg_steps <- c(1, 12, 144, 288) # step sizes for aggregation
+lakes <- "Peter" # can be vector; lakes to analyze (Paul, Peter)
+vars <- "chla" # can be vector; variables to analyze (wtr, bga, chla)
+
+
 
 #' #Functions in Developement
 #' ##Plotting
+#+ functions-plotting
 plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.exclude, lag.max=288*12, ...){
 	ln <- match.arg(ln)
 	v <- match.arg(v)
@@ -88,6 +97,7 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 
 
 #' ##Statistics
+#+ functions-statistics
 # Detrend
 # Detrend time series
 # @param x vector time series
@@ -142,6 +152,7 @@ ac_sub <- function(x, n, phase, ...){
 
 
 #' ##Rolling Windows and Aggregation
+#+ functions-windows-agg
 roundGrid <- function(x, frac=1){
 	# if frac is 1, then place in a 1º grid
 	# if frac is 0.5, then place in the 0.5º grid
@@ -229,6 +240,7 @@ sub_embed <- function(x, width=1, n=1, phase=1){
 
 
 #' #Data Prep
+#+ data-prep
 sos <- sos_data[Lake!="Tuesday"] # drop tuesday lake
 setnames(sos, 
 	old=c("Year", "Lake", "DoY", "DateTime", "Temp_HYLB", "Chla_Conc_HYLB", "BGA_Conc_HYLB"),
@@ -299,7 +311,6 @@ plot_acf(ln='Peter', v='bga')
 #' Below, I replicate this process (24-hr avg), but also aggregate at two other frequencies (1-hr and 12-hr).  
 #'   
 #+ rollingAvg-chla-3
-agg_steps <- c(1, 12, 144, 288)
 agg_sos <- function(aggsteps){
 	out <- sosm[,j={agg_ts(y=value, x=doy, width=aggsteps)},by=c("lake","variable")]
 	out
@@ -367,9 +378,39 @@ plot_agg_ts(agg_steps)
 #'   
 #' ###Fixed Window Size (number observations)
 #+ rollingAC-fixedSize
-sos_ac1_fS_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
-sos_ac1_fS_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
-sos_ac1_fS_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
+	# check vars, set if missing
+	if(missing(vars)){
+		vars <- X[[1]][,unique(variable)]
+	}else{
+		vars <- match.arg(vars, choices=X[[1]][,unique(variable)], several.ok=TRUE)
+	}
+	
+	# check lakes, set if missing
+	if(missing(lakes)){
+		lakes <- X[[1]][,unique(lake)]
+	}else{
+		lakes <- match.arg(lakes, choices=X[[1]][,unique(lake)], several.ok=TRUE)
+	}
+	
+	# check/ set window elapsed class
+	if(!is.list(window_elapsed)){
+		window_elapsed <- as.list(window_elapsed)
+	}
+	
+	# helper function to apply rolling statistic
+	roll_ac <- function(X2, nsteps){
+		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=ac1, width=nsteps, by=nby)}, by=c("lake","variable")]
+	}
+	out <- mapply(roll_ac, X, window_elapsed, SIMPLIFY=FALSE)
+	out
+}
+
+sos_agg_ac <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
+
+# sos_ac1_fS_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+# sos_ac1_fS_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+# sos_ac1_fS_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 
 #+ rollingAC-fixedSize-figure, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the window size of the rolling average (applied before calcluating AC statistic). AC statistic is calculated from the same number of points in each panel.", results='hide'
 par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
