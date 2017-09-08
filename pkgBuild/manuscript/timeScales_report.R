@@ -299,9 +299,49 @@ plot_acf(ln='Peter', v='bga')
 #' Below, I replicate this process (24-hr avg), but also aggregate at two other frequencies (1-hr and 12-hr).  
 #'   
 #+ rollingAvg-chla-3
-sos_12 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=12)]
-sos_144 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=144)]
-sos_288 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=288)]
+# the stuff immediately below here created 1 data.table for each lake-variable-aggregationsize combination. I realized this is going to be annoying if I want to extend to more lakes, years, variables, etc. Even indexing the output of that list was going to be tricky. Then I realized that what I want is essentially the same data set, but aggregated or subsampled to different frequencies. Duh. Then wrote much simpler, shorter code to do this.
+# agg_lakes <- c("Peter")
+# agg_vars <- c("chla")
+# agg_steps <- c(1, 12, 144, 288)
+#
+# make_agg_combos <- function(agg_lakes=c("Peter"), agg_vars=c("chla"), agg_steps=c(1,12,144,288)){
+# 	combos <- expand.grid(lake_name=agg_lakes, var_name=agg_vars, steps=agg_steps)
+# 	# unlist(apply(combos, 1, list), rec=FALSE)
+# 	apply(combos, 1, as.list)
+# }
+# agg_combos <- make_agg_combos(agg_lakes, agg_vars, agg_steps)
+# 
+# agg_sos <- function(lake_name="Peter", var_name="chla", steps=12){
+# 	t_name <- paste(lake_name, var_name, as.integer(as.character(steps)), sep="_")
+# 	out <- sos[lake==lake_name, agg_ts(y=get(var_name), x=doy, width=as.integer(as.character(steps)))]
+#
+# 	# startstop <- out[,range(x, na.rm=TRUE)]
+# 	# s_by <- median(out[,diff(x)], na.rm=TRUE)
+# 	round_digit <- nchar(ceiling(1/s_by)) + 1 # probably don't *need* the +1, just there as precaution
+# 	# skele <- data.table(x=round(seq(startstop[1], startstop[2], by=s_by), round_digit))
+#
+# 	out[,x:=round(x, round_digit)]
+# 	out <- list(out)
+# 	# out <- list(out[skele, on="x"])
+# 	names(out) <- t_name
+# 	out
+# }
+# sos_agg <- unlist(lapply(agg_combos, FUN=do.call, what=agg_sos), rec=FALSE)
+
+
+agg_steps <- c(1, 12, 144, 288)
+agg_sos <- function(aggsteps){
+	out <- sosm[,j={agg_ts(y=value, x=doy, width=aggsteps)},by=c("lake","variable")]
+	out
+}
+sos_agg <- lapply(agg_steps, agg_sos)
+names(sos_agg) <- paste0("agg", agg_steps)
+
+
+
+# sos_12 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=12)]
+# sos_144 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=144)]
+# sos_288 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=288)]
 
 #+ rollingAvg-chla-3-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling averages of chlorophyll in Peter Lake. The window size for the rolling average varies among panels.", results='hide'
 interval_name <- function(x){
