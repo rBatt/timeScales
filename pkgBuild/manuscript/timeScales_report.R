@@ -342,19 +342,22 @@ interval_name <- function(x){
 	return(iname)
 }
 
-plot_agg_ts <- function(steps, ln="Peter", vn="chla"){
+plot_agg_sub <- function(X, steps, ln="Peter", vn="chla", stat_name="", agg_tag="avg"){
+	# key use of this function is that it works for multiple time scales (amounts of aggregation or subsetting)
+	# will not be useful for hanging many combinations of lakes or variables
+	# however, takes arguments for 
 	ns <- length(steps)
 	par(mfrow=c(ns,1), mar=c(1.75, 1.75, 1, 0.25), oma=c(1,0.1,0.1,0.1), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
 	for(s in 1:ns){
 		iname <- interval_name(steps[s])
-		tdat <- sos_agg[[paste0("agg",steps[s])]][lake==ln & variable==vn]
-		ylab <- paste0(ln, " ", vn, " (", iname, " avg)")
+		tdat <- X[[paste0("agg",steps[s])]][lake==ln & variable==vn]
+		ylab <- paste0(stat_name, ln, " ", vn, " (", iname, " ", agg_tag, ")")
 		plot(tdat[,x], tdat[,y], xlab="", ylab=ylab, type='l')
 	}
 	mtext("Day of Year", side=1, outer=TRUE, line=0.1)
 }
+plot_agg_sub(X=sos_agg, steps=agg_steps)
 
-plot_agg_ts(agg_steps)
 #
 # sos_12[,plot(x, y, xlab="DoY", ylab="Peter Chla (1 hr avg)", type='l')]
 # sos_144[,plot(x, y, xlab="DoY", ylab="Peter Chla (12 hr avg)", type='l')]
@@ -376,7 +379,7 @@ plot_agg_ts(agg_steps)
 #'   
 #' Below, I take both approaches: calculating the AC statistic for a fixed number of points (28 points), and again for a fixed period of time (28 days). For the daily data, these two approaches will be equivalent. The outcome will likely differ for the hour and 12-hr time series.  
 #'   
-#' ###Fixed Window Size (number observations)
+#' ##Fixed Window Size (number observations)
 #+ rollingAC-fixedSize
 roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
 	# check vars, set if missing
@@ -408,15 +411,9 @@ roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
 
 sos_agg_ac <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
 
-# sos_ac1_fS_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
-# sos_ac1_fS_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
-# sos_ac1_fS_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
-
 #+ rollingAC-fixedSize-figure, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the window size of the rolling average (applied before calcluating AC statistic). AC statistic is calculated from the same number of points in each panel.", results='hide'
-par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sos_ac1_fS_12[,plot(x, y, xlab="DoY", ylab="AC(1) for Peter Chla (1 hr avg)", type='l')]
-sos_ac1_fS_144[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (12 hr avg)", type='l')]
-sos_ac1_fS_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type='l')]
+plot_agg_sub(X=sos_agg_ac, steps=agg_steps, stat_name="AC of ")
+
 #'   
 #'   
 #' There is minimal signal in AR(1) for the hourly data, and a very clear increase in AR(1) for the daily data; 12-hr data is somewhere in between. Each point in all three panels is autocorrelation calculated from the same number of data points, but due to differences in sampling frequency, the amount of time covered by those data points differs.  
@@ -424,7 +421,7 @@ sos_ac1_fS_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type
 #' Using this approach, there is a strong influence of sampling frequency on not only the AR(1) value (note y-axis scaling), but also the change in the statisic over time. Namely, the bottom panel shows a clear increase leading up to day ~195, whereas the top panel shows no trend at all.  
 #'   
 
-#' ###Fixed Window Time (amount of time elapsed)
+#' ##Fixed Window Time (amount of time elapsed)
 #'   
 #'   
 #+ rollingAC-fixedTime
@@ -450,7 +447,7 @@ sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type
 #' Thus far, these results are very interesting. **There are two important messages so far.** 1) if you can collect high-frequency (which is becoming more and more common due to advances in sensor technologies) do it, because you can just increase the window size when calculating your AC EWS statistic and get a have more power for that calculation (more data points); 2) You don't have to worry too much about the effects of data aggregation when calculating your statistic --- you can use the points separately or in aggregate, and you apparently get very similar results. This is good news if you are worried about computation time, or simply don't want to worry about having to fine-tune another user-defined parameter when computing EWS. This result earns EWS a point for user-friendliness!  
 #'   
 
-#' ###Fixed Window Time & Size (subsampling)
+#' ##Fixed Window Time & Size (subsampling)
 #'   
 #'   
 #' When sampling a variable over a particular window of time (say, August 2017), varying the sampling resolution changes affects both time scale and sample size. It affects time scale because adjacent measurements are closer together in high resolution data. If affects sample size because there will be more samples in high resolution data.  
