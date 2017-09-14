@@ -162,14 +162,14 @@ roundGrid <- function(x, frac=1){
 roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
 	buff <- rep(NA, width-1)
 	if(by > 1){
-		mat <- sub_embed(y, width=width, n=by) 
+		mat <- sub_embed(y, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
 	}else{
 		mat <- embed(y, width)
 	}
 	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN, ...))
 	if(!missing(x)){
 		if(by > 1){
-			mat2 <- sub_embed(x, width=width, n=by) 
+			mat2 <- sub_embed(x, width=width, n=by)
 		}else{
 			mat2 <- embed(x, width)
 		}
@@ -342,15 +342,20 @@ interval_name <- function(x){
 	return(iname)
 }
 
-plot_agg_sub <- function(X, steps, ln="Peter", vn="chla", stat_name="", agg_tag="avg"){
+plot_agg_sub <- function(X, steps, ln="Peter", vn="chla", stat_name="", agg_tag="avg", type=c("agg", "samp")){
 	# key use of this function is that it works for multiple time scales (amounts of aggregation or subsetting)
 	# will not be useful for hanging many combinations of lakes or variables
 	# however, takes arguments for 
+	type <- match.arg(type)
 	ns <- length(steps)
-	par(mfrow=c(ns,1), mar=c(1.75, 1.75, 1, 0.25), oma=c(1,0.1,0.1,0.1), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
+	if(type=="agg"){
+		par(mfrow=c(ns,1), mar=c(1.25, 1.75, 0.25, 0.25), oma=c(1,0.1,1.25,0.1), mgp=c(1, 0.15, 0), tcl=-0.15, ps=8, cex=1)
+	}else{
+		# par(mfcol=c(3,4), mar=c(2.5, 1.75, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
+	}
 	for(s in 1:ns){
 		iname <- interval_name(steps[s])
-		tdat <- X[[paste0("agg",steps[s])]][lake==ln & variable==vn]
+		tdat <- X[[paste0(type,steps[s])]][lake==ln & variable==vn]
 		ylab <- paste0(stat_name, ln, " ", vn, " (", iname, " ", agg_tag, ")")
 		plot(tdat[,x], tdat[,y], xlab="", ylab=ylab, type='l')
 	}
@@ -381,7 +386,7 @@ plot_agg_sub(X=sos_agg, steps=agg_steps)
 #'   
 #' ##Fixed Window Size (number observations)
 #+ rollingAC-fixedSize
-roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
+roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE){
 	# check vars, set if missing
 	if(missing(vars)){
 		vars <- X[[1]][,unique(variable)]
@@ -395,25 +400,52 @@ roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
 	}else{
 		lakes <- match.arg(lakes, choices=X[[1]][,unique(lake)], several.ok=TRUE)
 	}
+		
+	# Create n and b based on window_elapsed if subWindow or subStat is TRUE
+	# Otherwise, just ensure that by and n are lists
+	# Note that lists are for mapply(), and mapply() recycles ... arguments to length of longest arg
+	# So no need to check here for same length among X, window_elapsed, by, and n.
+	w_e28 <- unlist(window_elapsed)/28
+	if(subWindow){
+		by <- as.list(w_e28)
+	} else if(!is.list(by)){
+		by <- as.list(by)
+	}
+	if(subStat){
+		n <- as.list(w_e28)
+	} else if(!is.list(n)){
+		n <- as.list(n)
+	}
 	
 	# check/ set window elapsed class
 	if(!is.list(window_elapsed)){
 		window_elapsed <- as.list(window_elapsed)
 	}
 	
-	# helper function to apply rolling statistic
-	roll_ac <- function(X2, nsteps){
-		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=ac1, width=nsteps, by=nby)}, by=c("lake","variable")]
+	# The `n` argument is only used by the ac_sub function
+	# because this function subsets the series while computing the statistic
+	# (By contrast, the `by` argument indicates the size by which roll_ts should  
+	# increment the rolling window positionand is unrelated to the statistic used)
+	if(all(unlist(n)==1)){
+		funUse <- ac1
+	}else{
+		funUse <- ac_sub
 	}
-	out <- mapply(roll_ac, X, window_elapsed, SIMPLIFY=FALSE)
+	
+	# helper function to apply rolling statistic
+	roll_ac <- function(X2, nsteps, by, n){
+		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase)}, by=c("lake","variable")]
+	}
+	out <- mapply(roll_ac, X, window_elapsed, by, n, SIMPLIFY=FALSE)
 	out
 }
 
-sos_agg_ac <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
+sos_agg_ac_fS <- roll_ac.sos(X=sos_agg, window_elapsed=win_days, vars=vars, lakes=lakes)
+
 
 #+ rollingAC-fixedSize-figure, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the window size of the rolling average (applied before calcluating AC statistic). AC statistic is calculated from the same number of points in each panel.", results='hide'
-plot_agg_sub(X=sos_agg_ac, steps=agg_steps, stat_name="AC of ")
-
+plot_agg_sub(X=sos_agg_ac_fS, steps=agg_steps, stat_name="AC of ")
+mtext(paste0("Windows have Fixed # of Steps (", win_days, " Obs.)\nbut Vary in Time Period Covered"), side=3, line=-0.25, outer=TRUE)
 #'   
 #'   
 #' There is minimal signal in AR(1) for the hourly data, and a very clear increase in AR(1) for the daily data; 12-hr data is somewhere in between. Each point in all three panels is autocorrelation calculated from the same number of data points, but due to differences in sampling frequency, the amount of time covered by those data points differs.  
@@ -425,15 +457,18 @@ plot_agg_sub(X=sos_agg_ac, steps=agg_steps, stat_name="AC of ")
 #'   
 #'   
 #+ rollingAC-fixedTime
-sos_ac1_fT_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2*12)}]
-sos_ac1_fT_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2)}]
-sos_ac1_fT_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+# sos_ac1_fT_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2*12)}]
+# sos_ac1_fT_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2)}]
+# sos_ac1_fT_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
+sos_agg_ac_fT <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
 
 #+ rollingAC-fixedTime-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the window size of the rolling average (applied before calcluating AC statistic). AC statistic is calculated over the same duration of time in each panel.", results='hide'
-par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sos_ac1_fT_12[,plot(x, y, xlab="DoY", ylab="AC(1) for Peter Chla (1 hr avg)", type='l')]
-sos_ac1_fT_144[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (12 hr avg)", type='l')]
-sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type='l')]
+# par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
+# sos_ac1_fT_12[,plot(x, y, xlab="DoY", ylab="AC(1) for Peter Chla (1 hr avg)", type='l')]
+# sos_ac1_fT_144[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (12 hr avg)", type='l')]
+# sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type='l')]
+plot_agg_sub(X=sos_agg_ac_fT, steps=agg_steps, stat_name="AC of ")
+mtext(paste0("Windows Cover Fixed Time Period (", win_days, " days)\nbut Vary in # Observations"), side=3, line=-0.25, outer=TRUE)
 #'   
 #'   
 #' In this case, point plotted in all three panels are from an AR(1) statistic calculated from the same period of time. However, the first 2 panels have more data points per time period than the bottom panel, so more observations go into each AR(1) point for these panels.  
