@@ -318,12 +318,6 @@ agg_sos <- function(aggsteps){
 sos_agg <- lapply(agg_steps, agg_sos)
 names(sos_agg) <- paste0("agg", agg_steps)
 
-
-
-# sos_12 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=12)]
-# sos_144 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=144)]
-# sos_288 <- sos[lake=="Peter", agg_ts(y=chla, x=doy, width=288)]
-
 #+ rollingAvg-chla-3-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling averages of chlorophyll in Peter Lake. The window size for the rolling average varies among panels.", results='hide'
 interval_name <- function(x){
 	# assumes 5 minute data
@@ -363,10 +357,6 @@ plot_agg_sub <- function(X, steps, ln="Peter", vn="chla", stat_name="", agg_tag=
 }
 plot_agg_sub(X=sos_agg, steps=agg_steps)
 
-#
-# sos_12[,plot(x, y, xlab="DoY", ylab="Peter Chla (1 hr avg)", type='l')]
-# sos_144[,plot(x, y, xlab="DoY", ylab="Peter Chla (12 hr avg)", type='l')]
-# sos_288[,plot(x, y, xlab="DoY", ylab="Peter Chla (24 hr avg)", type='l')]
 #'   
 #'   
 #' The longer the window for the rolling average, the smoother the time series. There is a lot of high-frequency variability ("noise"). Performing a non-overlapping rolling mean (non-overlapping because a dataum is never used for more than 1 over the averages/ in more than 1of the windows) causes upward and downward fluctuations to "cancel out", producing a smoother time series. The larger the window, the larger the sample size that goes into each average, and the smoother the result.
@@ -457,16 +447,9 @@ mtext(paste0("Windows have Fixed # of Steps (", win_days, " Obs.)\nbut Vary in T
 #'   
 #'   
 #+ rollingAC-fixedTime
-# sos_ac1_fT_12 <- sos_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2*12)}]
-# sos_ac1_fT_144 <- sos_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2)}]
-# sos_ac1_fT_288 <- sos_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 sos_agg_ac_fT <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
 
 #+ rollingAC-fixedTime-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the window size of the rolling average (applied before calcluating AC statistic). AC statistic is calculated over the same duration of time in each panel.", results='hide'
-# par(mfrow=c(3,1), mar=c(2.5, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-# sos_ac1_fT_12[,plot(x, y, xlab="DoY", ylab="AC(1) for Peter Chla (1 hr avg)", type='l')]
-# sos_ac1_fT_144[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (12 hr avg)", type='l')]
-# sos_ac1_fT_288[,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24 hr avg)", type='l')]
 plot_agg_sub(X=sos_agg_ac_fT, steps=agg_steps, stat_name="AC of ")
 mtext(paste0("Windows Cover Fixed Time Period (", win_days, " days)\nbut Vary in # Observations"), side=3, line=-0.25, outer=TRUE)
 #'   
@@ -513,40 +496,17 @@ samp_sos <- function(aggsteps){
 sos_samp <- lapply(agg_steps, samp_sos)
 names(sos_samp) <- paste0("samp", agg_steps)
 
-# sos_ss_12 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=12), y=sub_samp(x=chla, n=12))]
-# sos_ss_144 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=144), y=sub_samp(x=chla, n=144))]
-# sos_ss_288 <- sos[lake=="Peter", list(x=sub_samp(x=doy, n=288), y=sub_samp(x=chla, n=288))]
-
-sos_ss_ac1_12 <- list()
-sos_ss_ac1_144 <- list()
-sos_ss_ac1_288 <- list()
-
 #+ rollingAC-subData-fullStat-fullWindow
-# roll_ac.sos <- function(X, window_elapsed, nby=1, vars, lakes){
-# sos_agg_ac_fT <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
-
 sos_ac_fSfW <- roll_ac.sos(X=sos_samp, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
-# sos_ss_ac1_12[['fSfW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*12*2)}]
-# sos_ss_ac1_144[['fSfW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2)}]
-# sos_ss_ac1_288[['fSfW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 
 #+ rollingAC-subData-subStat-fullWindow
 sos_ac_sSfW <- roll_ac.sos(X=sos_samp, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes, subStat=TRUE)
-# sos_ss_ac1_12[['sSfW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*12*2, by=1, n=24, phase=1)}]
-# sos_ss_ac1_144[['sSfW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*2, by=1, n=2, phase=1)}]
-# sos_ss_ac1_288[['sSfW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 
 #+ rollingAC-subData-fullStat-subWindow
 sos_ac_fSsW <- roll_ac.sos(X=sos_samp, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes, subWindow=TRUE)
-# sos_ss_ac1_12[['fSsW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*12*2, by=24)}]
-# sos_ss_ac1_144[['fSsW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac1, width=28*2, by=2)}]
-# sos_ss_ac1_288[['fSsW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 
 #+ rollingAC-subSample-subStat-subWindow
 sos_ac_sSsW <- roll_ac.sos(X=sos_samp, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes, subStat=TRUE, subWindow=TRUE)
-# sos_ss_ac1_12[['sSsW']] <- sos_ss_12[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*12*2, by=24, n=24, phase=1)}]
-# sos_ss_ac1_144[['sSsW']] <- sos_ss_144[,j={roll_ts(y=y, x=x, FUN=ac_sub, width=28*2, by=2, n=2, phase=1)}]
-# sos_ss_ac1_288[['sSsW']] <- sos_ss_288[,j={roll_ts(y=y, x=x, FUN=ac1, width=28)}]
 
 #+ rollingAC-subSample-fig, fig.width=6.5, fig.height=6, fig.cap="**Figure.** Rolling window AC(1). Panels differ in the amount of subsampling applied before calculating statistic. AC statistic is calculated over the same duration of time in each panel.", results='hide'
 par(mfcol=c(4,4), mar=c(1.5, 1.75, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
@@ -571,26 +531,6 @@ mtext("Sub-Stat, Sub Window", outer=TRUE, line=-1, side=3, adj=0.985)
 # ac1(embed(mat[1,],2)[c(FALSE,TRUE)]) # increase the phase of the subsampling by 1 (drop first keep second) and estimate is way higher, ~0.37
 # ac1(embed(mat[2,],2)[c(TRUE,FALSE)]) # on the other hand, this value is much higher, like ac1(embed(mat[1,],2)[c(FALSE,TRUE)]). So the pattern flips
 # I can't find a specific error with the "subsetting". If I do the "sub window" (using every-other row of 'mat'), then I get a consistent AR(1) b/c I'm sticking to the "highs" (or "lows", if I start with second row of 'mat'). So at least that explains why you don't see the zig-zag with subStat-subWindow
-
-# sos_ss_ac1_12[['fSfW']][,plot(x, y, xlab="", ylab="AC(1) for Peter Chla (1-hr res)", type='l')]
-# mtext("Full Stat, Full Win", side=3, line=0, font=2)
-# sos_ss_ac1_144[['fSfW']][,plot(x, y, xlab="", ylab="AC(1) Peter Chla (12-hr res)", type='l')]
-# sos_ss_ac1_288[['fSfW']][,plot(x, y, xlab="DoY", ylab="AC(1) Peter Chla (24-hr res)", type='l')]
-#
-# sos_ss_ac1_12[['sSfW']][,plot(x, y, xlab="", ylab="", type='l')]
-# mtext("Sub Stat, Full Win", side=3, line=0, font=2)
-# sos_ss_ac1_144[['sSfW']][,plot(x, y, xlab="", ylab="", type='l')]
-# sos_ss_ac1_288[['sSfW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
-#
-# sos_ss_ac1_12[['fSsW']][,plot(x, y, xlab="", ylab="", type='l')]
-# mtext("Full Stat, Sub Win", side=3, line=0, font=2)
-# sos_ss_ac1_144[['fSsW']][,plot(x, y, xlab="", ylab="", type='l')]
-# sos_ss_ac1_288[['fSsW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
-#
-# sos_ss_ac1_12[['sSsW']][,plot(x, y, xlab="", ylab="", type='l')]
-# mtext("Sub Stat, Sub Win", side=3, line=0, font=2)
-# sos_ss_ac1_144[['sSsW']][,plot(x, y, xlab="", ylab="", type='l')]
-# sos_ss_ac1_288[['sSsW']][,plot(x, y, xlab="DoY", ylab="", type='l')]
 
 #' Of all the changes I made in this section relative to previous sections, I think the alteration with the biggest impact was not aggregating the original time series (e.g., daily average), and instead subsampling the original time series (e.g., one sample per day). In this round of results, I am most surprised that, when calculating the windowed AC statistic, using the full windowed series (much larger sample size for high-res time series) was not very different from using the subsampled series. Previously, my best guess as to why the high-res time series performed so well -- arguably *better* than the daily average -- in the fixed-time-elapsed + hourly-average scenario was because each calculation of AC had so many more observations available. This does not appear to be the case any longer. In the "Full Stat" columns of the above figure, the top row (hourly) has 24-times as many data points per AC calculation relative to the bottom row (daily). But apparently sample size supplied to the AC statistic is **not** the what was giving the high-frequency data such good performance in the early analyses.  
 #'   
