@@ -2,6 +2,7 @@
 
 export(ac1)
 export(ac_sub)
+export(agg_ts)
 export(detrend)
 export(interval_name)
 export(roll_ac.sos)
