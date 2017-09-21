@@ -159,16 +159,6 @@ roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
 # dta[,plot(x,y)]
 
 
-
-sub_samp <- function(x, n, phase=1){
-	if(phase!=n){
-		phase <- max(1, phase%%n) # ensures 1 ≤ phase ≤ n; keeps starting elements when phase > n, unlike min(phase,n)
-	}
-	vec <- rep(FALSE, n)
-	vec[phase] <- TRUE
-	x[vec]
-}
-
 #' Embed and Subsample a Time Series
 #' 
 #' Embed a time series like in \code{\link{embed}}, and then subsample the rows of that resulting matrix.
