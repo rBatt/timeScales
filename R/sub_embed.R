@@ -9,7 +9,7 @@
 #' 
 #' @return matrix
 sub_embed <- function(x, width=1, n=1, phase=1){
-	emat <- embed(x, dimension=width)
+	emat <- stats::embed(x, dimension=width)
 	row_vec <- seq_len(nrow(emat))
 	row_ind <- sub_samp(row_vec, n=n, phase=phase)
 	return(emat[row_ind, ])

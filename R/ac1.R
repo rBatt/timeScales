@@ -8,18 +8,18 @@
 #' @export
 ac1 <- function(x, ...){	
 	# # option 1
-	l2 <- embed(x, 2)
-	ac <- cor(l2[,1], l2[,2], use="na.or.complete")
+	l2 <- stats::embed(x, 2)
+	ac <- stats::cor(l2[,1], l2[,2], use="na.or.complete")
 	#
 	# # option 2
-	# ac <- ar(x, order.max=1)$ar # returns numeric(0) if nothing fit
+	# ac <- stats::ar(x, order.max=1)$ar # returns numeric(0) if nothing fit
 	#
 	# # option 3
-	# l2 <- embed(x, 2)
+	# l2 <- stats::embed(x, 2)
 	# ac <- lm(I(l2[,1]) ~ I(l2[,2]))$coef[2]
 	
 	# option 4
-	# detX <- detrend(x)
+	# detX <- timeScales::detrend(x)
 	# if(all(is.na(x))){return(NA)}
 #	# l2 <- stats::embed(x, 2)
 #	# ac <- tryCatch(stats::lm(I(l2[,1]) ~ I(l2[,2]))$coef[2], error=function(cond)NA)
@@ -46,10 +46,10 @@ ac1 <- function(x, ...){
 #' @return AR1 coefficient
 #' @export
 ac_sub <- function(x, n, phase, ...){
-	l2 <- embed(x, 2)
+	l2 <- stats::embed(x, 2)
 	row_vec <- seq_len(nrow(l2))
 	row_ind <- sub_samp(row_vec, n=n, phase=phase)
 	l2_sub <- l2[row_ind, ]
-	ac <- cor(l2_sub[,1], l2_sub[,2], use="na.or.complete")
+	ac <- stats::cor(l2_sub[,1], l2_sub[,2], use="na.or.complete")
 	return(ac)
 }

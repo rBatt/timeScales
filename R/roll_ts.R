@@ -39,14 +39,14 @@ roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
 	if(by > 1){
 		mat <- sub_embed(y, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
 	}else{
-		mat <- embed(y, width)
+		mat <- stats::embed(y, width)
 	}
 	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN, ...))
 	if(!missing(x)){
 		if(by > 1){
 			mat2 <- sub_embed(x, width=width, n=by)
 		}else{
-			mat2 <- embed(x, width)
+			mat2 <- stats::embed(x, width)
 		}
 		agg2 <- c(buff, apply(mat2, 1, max, na.rm=TRUE))
 		data.table(x=agg2, y=agg)
