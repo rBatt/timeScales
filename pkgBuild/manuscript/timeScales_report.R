@@ -95,21 +95,6 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 	invisible(NULL)
 }
 
-
-#' ##Statistics
-#+ functions-statistics
-# Detrend
-# Detrend time series
-# @param x vector time series
-# @param time vector of time steps
-#
-# @return detrended x
-# @export
-detrend <- function(x, time=1:length(x)){
-	stats::residuals(stats::lm(x~time))
-}
-
-
 #' ##Rolling Windows and Aggregation
 #+ functions-windows-agg
 roundGrid <- function(x, frac=1){
