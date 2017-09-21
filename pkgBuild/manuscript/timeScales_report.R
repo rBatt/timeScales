@@ -319,23 +319,6 @@ sos_agg <- lapply(agg_steps, agg_sos)
 names(sos_agg) <- paste0("agg", agg_steps)
 
 #+ rollingAvg-chla-3-fig, fig.width=3.5, fig.height=6.5, fig.cap="**Figure.** Rolling averages of chlorophyll in Peter Lake. The window size for the rolling average varies among panels.", results='hide'
-interval_name <- function(x){
-	# assumes 5 minute data
-	interv <- x*5
-	if(interv < 60){
-		unit <- "min"
-		val <- interv
-	}else if(interv >= 60 & interv < 1440){
-		unit <- "hr"
-		val <- round(interv/60, 2)
-	}else{
-		unit <- "day"
-		val <- round(interv/60/24, 2)
-	}
-	iname <- paste(val, unit, sep="-")
-	return(iname)
-}
-
 plot_agg_sub <- function(X, steps, ln="Peter", vn="chla", stat_name="", agg_tag="avg", type=c("agg", "samp")){
 	# key use of this function is that it works for multiple time scales (amounts of aggregation or subsetting)
 	# will not be useful for hanging many combinations of lakes or variables
