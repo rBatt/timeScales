@@ -15,6 +15,7 @@
 #' @details I need to fill this in. One thing to remember is that 28-day nominal window size is hard-coded into this function right now.
 #' 
 #' @return list or list of data.tables containing rolling window statistic
+#' @import data.table
 #' @export
 roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE){
 	# check vars, set if missing
