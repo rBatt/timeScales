@@ -80,7 +80,6 @@ lakes <- "Peter" # can be vector; lakes to analyze (Paul, Peter)
 vars <- "chla" # can be vector; variables to analyze (wtr, bga, chla)
 
 
-
 #' #Functions in Developement
 #' ##Plotting
 #+ functions-plotting
@@ -230,60 +229,6 @@ plot_agg_sub(X=sos_agg, steps=agg_steps)
 #'   
 #' ##Fixed Window Size (number observations)
 #+ rollingAC-fixedSize
-roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE){
-	# check vars, set if missing
-	if(missing(vars)){
-		vars <- X[[1]][,unique(variable)]
-	}else{
-		vars <- match.arg(vars, choices=X[[1]][,unique(variable)], several.ok=TRUE)
-	}
-	
-	# check lakes, set if missing
-	if(missing(lakes)){
-		lakes <- X[[1]][,unique(lake)]
-	}else{
-		lakes <- match.arg(lakes, choices=X[[1]][,unique(lake)], several.ok=TRUE)
-	}
-		
-	# Create n and b based on window_elapsed if subWindow or subStat is TRUE
-	# Otherwise, just ensure that by and n are lists
-	# Note that lists are for mapply(), and mapply() recycles ... arguments to length of longest arg
-	# So no need to check here for same length among X, window_elapsed, by, and n.
-	w_e28 <- unlist(window_elapsed)/28
-	if(subWindow){
-		by <- as.list(w_e28)
-	} else if(!is.list(by)){
-		by <- as.list(by)
-	}
-	if(subStat){
-		n <- as.list(w_e28)
-	} else if(!is.list(n)){
-		n <- as.list(n)
-	}
-	
-	# check/ set window elapsed class
-	if(!is.list(window_elapsed)){
-		window_elapsed <- as.list(window_elapsed)
-	}
-	
-	# The `n` argument is only used by the ac_sub function
-	# because this function subsets the series while computing the statistic
-	# (By contrast, the `by` argument indicates the size by which roll_ts should  
-	# increment the rolling window positionand is unrelated to the statistic used)
-	if(all(unlist(n)==1)){
-		funUse <- ac1
-	}else{
-		funUse <- ac_sub
-	}
-	
-	# helper function to apply rolling statistic
-	roll_ac <- function(X2, nsteps, by, n){
-		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase)}, by=c("lake","variable")]
-	}
-	out <- mapply(roll_ac, X, window_elapsed, by, n, SIMPLIFY=FALSE)
-	out
-}
-
 sos_agg_ac_fS <- roll_ac.sos(X=sos_agg, window_elapsed=win_days, vars=vars, lakes=lakes)
 
 
