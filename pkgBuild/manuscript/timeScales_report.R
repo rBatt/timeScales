@@ -95,14 +95,6 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 	invisible(NULL)
 }
 
-#' ##Rolling Windows and Aggregation
-#+ functions-windows-agg
-roundGrid <- function(x, frac=1){
-	# if frac is 1, then place in a 1º grid
-	# if frac is 0.5, then place in the 0.5º grid
-	floor(round(x/frac, 6))*frac+frac/2
-}
-
 
 #'   
 #' \FloatBarrier  
