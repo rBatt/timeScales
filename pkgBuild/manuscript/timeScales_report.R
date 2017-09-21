@@ -158,13 +158,7 @@ roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
 # plot(xa, ya)
 # dta[,plot(x,y)]
 
-agg_ts <- function(x, y, width=288, na.rm=TRUE, FUN=mean){
-	buff <- rep(NA, width-1)
-	tot <- round(mean(1/diff(x), na.rm=TRUE), 0)
-	frac <- width/tot
-	dt <- data.table(x=roundGrid(x, frac), y=y)
-	dto <- dt[,list(y=FUN(y, na.rm=na.rm), N=sum(!is.na(y))), by=x]
-}
+
 
 sub_samp <- function(x, n, phase=1){
 	if(phase!=n){
@@ -270,6 +264,13 @@ plot_acf(ln='Peter', v='bga')
 #' Below, I replicate this process (24-hr avg), but also aggregate at two other frequencies (1-hr and 12-hr).  
 #'   
 #+ rollingAvg-chla-3
+agg_ts <- function(x, y, width=288, na.rm=TRUE, FUN=mean){
+	buff <- rep(NA, width-1)
+	tot <- round(mean(1/diff(x), na.rm=TRUE), 0)
+	frac <- width/tot
+	dt <- data.table(x=roundGrid(x, frac), y=y)
+	dto <- dt[,list(y=FUN(y, na.rm=na.rm), N=sum(!is.na(y))), by=x]
+}
 agg_sos <- function(aggsteps){
 	out <- sosm[,j={agg_ts(y=value, x=doy, width=aggsteps)},by=c("lake","variable")]
 	out
