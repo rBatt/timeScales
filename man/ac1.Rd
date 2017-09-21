@@ -9,6 +9,8 @@ ac1(x, ...)
 }
 \arguments{
 \item{x}{numeric vector of values of a regular (equally-spaced) time series}
+
+\item{...}{unused, here for compatibility with functions that might, by default, pass arguments unused by this function}
 }
 \value{
 AR(1) coefficient

@@ -2,6 +2,7 @@
 #' Calculate first-order autocorrelation
 #' 
 #' @param x numeric vector of values of a regular (equally-spaced) time series
+#' @param ... unused, here for compatibility with functions that might, by default, pass arguments unused by this function
 #' 
 #' @return AR(1) coefficient
 #' @export
