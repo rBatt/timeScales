@@ -110,16 +110,6 @@ detrend <- function(x, time=1:length(x)){
 }
 
 
-ac_sub <- function(x, n, phase, ...){
-	l2 <- embed(x, 2)
-	row_vec <- seq_len(nrow(l2))
-	row_ind <- sub_samp(row_vec, n=n, phase=phase)
-	l2_sub <- l2[row_ind, ]
-	ac <- cor(l2_sub[,1], l2_sub[,2], use="na.or.complete")
-	return(ac)
-}
-
-
 #' ##Rolling Windows and Aggregation
 #+ functions-windows-agg
 roundGrid <- function(x, frac=1){
