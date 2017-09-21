@@ -118,47 +118,6 @@ roundGrid <- function(x, frac=1){
 	floor(round(x/frac, 6))*frac+frac/2
 }
 
-roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
-	buff <- rep(NA, width-1)
-	if(by > 1){
-		mat <- sub_embed(y, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
-	}else{
-		mat <- embed(y, width)
-	}
-	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN, ...))
-	if(!missing(x)){
-		if(by > 1){
-			mat2 <- sub_embed(x, width=width, n=by)
-		}else{
-			mat2 <- embed(x, width)
-		}
-		agg2 <- c(buff, apply(mat2, 1, max, na.rm=TRUE))
-		data.table(x=agg2, y=agg)
-	}else{
-		agg
-	}
-}
-# @examples
-# # example data
-# x <- 1:50
-# y <- cumsum(rnorm(50))
-# dt <- data.table(x, y)
-#
-# # do x and y values separately
-# # x value is an ordering value, like time
-# # y is the system state, like chlorophyll
-# xa <- roll_ts(dt[,x], FUN=max, width=5)
-# ya <- roll_ts(dt[,y], width=5)
-#
-# # do both x and y at same time
-# dta <- dt[,agg_ts(y=y, x=x, width=5)]
-#
-# # plot two sets of results
-# par(mfrow=c(2,1))
-# plot(xa, ya)
-# dta[,plot(x,y)]
-
-
 #' Embed and Subsample a Time Series
 #' 
 #' Embed a time series like in \code{\link{embed}}, and then subsample the rows of that resulting matrix.
