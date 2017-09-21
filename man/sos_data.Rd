@@ -20,8 +20,8 @@ Sonde data from 3 experimental lakes in Son of Squeal experiment. This is from t
 \code{DoY} \tab numeric \tab Day of year \cr
 \code{DateTime} \tab character \tab Date/ time of sample; in YYYY-MM-DD HH:MM:SS format \cr
 \code{Temp_HYLB} \tab numeric \tab water temperature as measured by Hydrolab sonde \cr
-\code {Chla_Conc_HYLB} \tab numeric \tab chlorophyll a concentration (fluoresence) \cr
-\code {BGA_Conc_HYLB} \tab numeric \tab blue-green algae (phycocyanin) concentration (fluoresence) \cr
+\code{Chla_Conc_HYLB} \tab numeric \tab chlorophyll a concentration (fluoresence) \cr
+\code{BGA_Conc_HYLB} \tab numeric \tab blue-green algae (phycocyanin) concentration (fluoresence) \cr
 }
 }
 \keyword{datasets}
