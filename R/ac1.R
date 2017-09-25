@@ -8,13 +8,19 @@
 #' @return AR(1) coefficient
 #' @export
 ac1 <- function(x, trend.rm=TRUE, ...){	
+	
 	if(trend.rm){
+		if(all(is.na(x))){return(NA)}
 		x <- timeScales::detrend(x)
 	}
 	
 	# # option 1
 	l2 <- stats::embed(x, 2)
 	ac <- stats::cor(l2[,1], l2[,2], use="na.or.complete")
+	# ac <- tryCatch({
+# 		l2 <- stats::embed(x, 2);
+# 		stats::cor(l2[,1], l2[,2], use="na.or.complete")
+# 	}, error=function(cond)NA)
 	#
 	# # option 2
 	# ac <- stats::ar(x, order.max=1)$ar # returns numeric(0) if nothing fit
