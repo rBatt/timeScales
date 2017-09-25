@@ -6,5 +6,5 @@
 #' @return detrended x
 #' @export
 detrend <- function(x, time=1:length(x)){
-	stats::residuals(stats::lm(x~time))
+	stats::residuals(stats::lm(x~time, na.action=na.exclude))
 }
