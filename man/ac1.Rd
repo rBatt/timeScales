@@ -5,10 +5,12 @@
 \title{AC1
 Calculate first-order autocorrelation}
 \usage{
-ac1(x, ...)
+ac1(x, trend.rm = TRUE, ...)
 }
 \arguments{
 \item{x}{numeric vector of values of a regular (equally-spaced) time series}
+
+\item{trend.rm}{logical, remove trend before computing autocorrelation? Defaults to TRUE.}
 
 \item{...}{unused, here for compatibility with functions that might, by default, pass arguments unused by this function}
 }

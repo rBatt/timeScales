@@ -2,11 +2,16 @@
 #' Calculate first-order autocorrelation
 #' 
 #' @param x numeric vector of values of a regular (equally-spaced) time series
+#' @param trend.rm logical, remove trend before computing autocorrelation? Defaults to TRUE.
 #' @param ... unused, here for compatibility with functions that might, by default, pass arguments unused by this function
 #' 
 #' @return AR(1) coefficient
 #' @export
-ac1 <- function(x, ...){	
+ac1 <- function(x, trend.rm=TRUE, ...){	
+	if(trend.rm){
+		x <- timeScales::detrend(x)
+	}
+	
 	# # option 1
 	l2 <- stats::embed(x, 2)
 	ac <- stats::cor(l2[,1], l2[,2], use="na.or.complete")
