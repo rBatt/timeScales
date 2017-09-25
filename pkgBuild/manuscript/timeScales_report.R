@@ -32,6 +32,7 @@
 library("data.table")
 library("zoo")
 library("forecast")
+library("timeScales")
 
 # Report
 library(knitr)
@@ -311,22 +312,44 @@ mtext("Full Stat, Sub Window", outer=TRUE, line=-1, side=3, adj=0.675)
 plot_agg_sub(sos_ac_sSsW, agg_steps, agg_tag="sample", type="samp")
 mtext("Sub-Stat, Sub Window", outer=TRUE, line=-1, side=3, adj=0.985)
 
-# ====================
-# = # debug this ... =
-# ====================
-# debug(roll_ac.sos)
-# debug(roll_ts)
-# roll_ac.sos(X=sos_samp[3], window_elapsed=win_days*24*60/5/agg_steps[3], vars=vars, lakes=lakes, subStat=TRUE)
-# in roll_ts debug, check out the mat variable
-# ac1(embed(mat[1,],2)) # do this to get the standard AR(1) (no sub-stat)
-# ac1(embed(mat[1,],2)[c(TRUE,FALSE)]) # this is the equivalent of the sub-stat ... estimate is low, ~0.04
-# ac1(embed(mat[1,],2)[c(FALSE,TRUE)]) # increase the phase of the subsampling by 1 (drop first keep second) and estimate is way higher, ~0.37
-# ac1(embed(mat[2,],2)[c(TRUE,FALSE)]) # on the other hand, this value is much higher, like ac1(embed(mat[1,],2)[c(FALSE,TRUE)]). So the pattern flips
-# I can't find a specific error with the "subsetting". If I do the "sub window" (using every-other row of 'mat'), then I get a consistent AR(1) b/c I'm sticking to the "highs" (or "lows", if I start with second row of 'mat'). So at least that explains why you don't see the zig-zag with subStat-subWindow
-
 #' Of all the changes I made in this section relative to previous sections, I think the alteration with the biggest impact was not aggregating the original time series (e.g., daily average), and instead subsampling the original time series (e.g., one sample per day). In this round of results, I am most surprised that, when calculating the windowed AC statistic, using the full windowed series (much larger sample size for high-res time series) was not very different from using the subsampled series. Previously, my best guess as to why the high-res time series performed so well -- arguably *better* than the daily average -- in the fixed-time-elapsed + hourly-average scenario was because each calculation of AC had so many more observations available. This does not appear to be the case any longer. In the "Full Stat" columns of the above figure, the top row (hourly) has 24-times as many data points per AC calculation relative to the bottom row (daily). But apparently sample size supplied to the AC statistic is **not** the what was giving the high-frequency data such good performance in the early analyses.  
 #'   
 #' For next steps I need to 1) check my code; 2) try higher- and lower- resolutions than what I'm using here in order to "break" the AC indicator (get it to not show a warning); 3) If I can't "break" the indicator, I should apply & read about DFA (I'm thinking that if I can't break AC, then it is scale-free, though I'm pretty sure that DFA as a warning just means that the scale-free property changes [decays?] as the tipping point is approach, and in that case, DFA wouldn't tell me what I want to know); 4) after 2&3, plot a heat map of the ACF (`acf()`), because that will explicitly show me how AC is changing over time and across time scales. My guess is that this is essentially going to be identical to a heat map based on `spec.ar()`.  
+#'   
+#' **Note:** (25-Sept-2017) I've checked my code an made some changes. I found an error in my code to subset the statistic (simple didn't do the subset, oops). Once I fixed this error, weird looking oscillations appeared in some of the output (see above figures, and below for explanation); this caught me off guard and I spent a while understanding it (and check my code many more times). Furthermore, I realized that the presence of a trend is probably having a massive effect on autocorrelation (see further below for explanation). Of the above 'next steps', I think the most relevant is the suggestion to try `spec.ar()`. I've adapted code to play around with time series resolutions easily, but before I try that, I need to remove trends from the time series (that'll probably 'break' the high-frequency statistic).
+
+
+#' ###Explanation for why sub-stat sub-window oscillates
+#+ exp-oscillations-largeSim, results="hide"
+y <- arima.sim(model=list(ar=0.5), n=2*28*5)
+testX <- list(samp144=data.table(lake="Peter",variable="chla",x=roundGrid(seq(0.25,length(y)/2, by=0.5), 0.5), y=y))
+testOut <- roll_ac.sos(X=testX, window_elapsed=win_days*24*60/5/agg_steps[3], vars=vars, lakes=lakes, subStat=TRUE)
+testOut[[1]][,plot(x,y, type='l')]
+#' Reproduces oscillations in simple simulated data  
+#'   
+#' Next use even smaller simulation, and manually code the calculations for greater transparency
+#+ exp-oscillations-smallSim-Manual, results="markup"
+# manually reproduce procedure for calculating sub-stat rolling window
+y <- arima.sim(model=list(ar=0.5), n=60) # simulate smaller time series for easier visual inspection
+y_embed_window <- embed(y, 15) # each row is a different 'window', each column different time step in that window
+y_embed_window_small <- y_embed_window[1:5,] # subset to the first 5 windows for even smaller example
+y_embed_window_small_embed <- lapply(unlist(apply(y_embed_window_small, 1, list), rec=F), embed, 2)
+sapply(y_embed_window_small_embed, ac1) # don't subset the statistic; doesn't oscillate
+sub_fun <- function(x){x[c(TRUE,FALSE),]} # subset to every-other row
+sub_ac1 <- function(x){ac1(sub_fun(x))} # calculate autocorrelation for a matrix subset to every other row
+plot(sapply(y_embed_window_small_embed, sub_ac1), type='l') # statistic oscillates
+
+print(y) # follow a value from this time series throughout the next windowed groups
+print(y_embed_window_small_embed[[1]][c(TRUE,FALSE),]) # first window, column 1 is time t, column 2 is time t-1
+print(y_embed_window_small_embed[[2]][c(TRUE,FALSE),]) # second window
+print(y_embed_window_small_embed[[3]][c(TRUE,FALSE),]) # third window
+print(y_embed_window_small_embed[[4]][c(TRUE,FALSE),]) # fourth window
+print(y_embed_window_small_embed[[5]][c(TRUE,FALSE),]) # fifth window
+
+#' Examining the time series and then the double-embeded matrices (each embedded matrix above is a 'window' where column 1 is time t and column 2 is time t-1), it is clear that the high and low values of autocorrelation appear with alternative sets of adjacent observations. If you have pairs of observations $AB, BC, CD, DE, EF, FG, GH, HI$, one window (of size 3) might have ${AB, CD, EF}$. Then the next would have ${BC, DE, FG}$. Then you'd have ${CD, EF, GH}$ for the third window, and ${DE, FG, HI}$ for the fourth. Note that the 1st and 3rd windows share ${CD, EF}$, and the 2nd and 4th share ${DE, FG}$. By contrast, adjacent windows don't have any observation pairs in common. In these examples, every-other window shares 2/3 of the previous window's pairs. If the window sizes were larger, the commonality would be even higher, yet the adjacent windows would still have 0 pairs in common. Just by chance, calculating the AC statistic for two subsets of a time series will produce 2 non-identical values, one of which must be larger than the other. For large-sized windows (subsets), removing one observation pair and adding in a new one creates a relatively small difference in the information content of the new window. Thus, the initial arbitrary large-small difference between adjacent windows is maintained as the windows are incremented, because the inremented windows have a lot of the same information content (this is why a rolling window tends to produce a smoothe time series of the applied statistic). But because the statistic is also applying an every-other subset of its own, adjacent windows actually have very different information content whereas every-other window has very similar content. As a result, you get repeated up-down cycle. Later, when I increment the window by a larger interval (instead of only sliding it by 1, slide it by the same subsetting used in the AC calculation), then the AC's subset interval and the window's subset interval are synchronized, resulting in an output that is effectively either the "peaks" or "troughs" of the jagged time series produced when the AC is subset but the window is incremented by just 1. A time series of all "peaks" or all "troughs" looks as smooth as a time series produced by a typical rolling window statistic.  
+
+
+
 
 
 #'   
@@ -336,7 +359,7 @@ mtext("Sub-Stat, Sub Window", outer=TRUE, line=-1, side=3, adj=0.985)
 #'   
 #' #Effect of Trend on AC over Different Time Horizons
 #' *Update on Previous Thinking:* I think the high-frequency time series show increases in autocorrelation for a long time horizon but not a short time horizon because of a trend in the data, and that the ac1 estimator doesn't detrend.
-#+ trend-impact-AC
+#+ trend-impact-AC, results="markup"
 set.seed(42)
 x <- 1:100
 y0 <- as.numeric(arima.sim(model=list("ar"=0.25), n=length(x)))
