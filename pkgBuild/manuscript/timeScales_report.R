@@ -330,13 +330,14 @@ testOut[[1]][,plot(x,y, type='l')]
 #' Next use even smaller simulation, and manually code the calculations for greater transparency
 #+ exp-oscillations-smallSim-Manual, results="markup"
 # manually reproduce procedure for calculating sub-stat rolling window
-y <- arima.sim(model=list(ar=0.5), n=60) # simulate smaller time series for easier visual inspection
-y_embed_window <- embed(y, 15) # each row is a different 'window', each column different time step in that window
+y <- arima.sim(model=list(ar=0.5), n=80) # simulate smaller time series for easier visual inspection
+y_embed_window <- embed(y, 20) # each row is a different 'window', each column different time step in that window
 y_embed_window_small <- y_embed_window[1:5,] # subset to the first 5 windows for even smaller example
 y_embed_window_small_embed <- lapply(unlist(apply(y_embed_window_small, 1, list), rec=F), embed, 2)
-sapply(y_embed_window_small_embed, ac1) # don't subset the statistic; doesn't oscillate
+t_ac1 <- function(x){cor(x, use="na.or.complete")[2,1]}
+sapply(y_embed_window_small_embed, t_ac1) # don't subset the statistic; doesn't oscillate
 sub_fun <- function(x){x[c(TRUE,FALSE),]} # subset to every-other row
-sub_ac1 <- function(x){ac1(sub_fun(x))} # calculate autocorrelation for a matrix subset to every other row
+sub_ac1 <- function(x){t_ac1(sub_fun(x))} # calculate autocorrelation for a matrix subset to every other row
 plot(sapply(y_embed_window_small_embed, sub_ac1), type='l') # statistic oscillates
 
 print(y) # follow a value from this time series throughout the next windowed groups
