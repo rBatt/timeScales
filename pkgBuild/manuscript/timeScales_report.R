@@ -350,6 +350,80 @@ print(y_embed_window_small_embed[[5]][c(TRUE,FALSE),]) # fifth window
 
 
 
+#'   
+#' \FloatBarrier  
+#'   
+#' ***  
+#'   
+#' #Achieving Stationarity
+#' Here I'm going to try several approaches to making a sonde chlorophyll time series stationary while calculating AC. Initially I'll be testing these approaches on the full time series. However, what's truly relevant is that the time series is stationary within a window being analyzed. I'm using the full time series first because it's easier to just visualize one set of residuals and fit 1 model. I figure that if I can get the full tiem series to become stationary with a reasonably simple approach, then that same approach should be pretty straightforward to adapt to a 28-day window (full time series is 119 days).  
+#'   
+#+ test-make-stationary-data
+dat <- sos_samp$samp12[lake==lakes[1] & variable==vars[1]] # take the hourly data for starters
+d <- dat[,y]
+dts <- ts(d, deltat=1/24)
+
+par(mfrow=c(2,1)) # prepare to visualize
+dat[,plot(x, y, type='l')] # full time series
+dat[1:(24*5),plot(x, y, type='l')] # 5 days worth of data
+#' This time series is clearly non-stationary. Throughout the series there are 24-hour cycles. Over the full time series there isn't a single strong trend. However, if the series were to be split into rolling windows, several of those windows would show a strong trend, or perhaps a increase then decrease or vice versa.
+
+#+ decompose-stl-show-shortTS, fig.cap="**Figure.** 5 days of the decomposed hourly time series. Blue lines are at 6am (near sunrise), red lines are at noon, at orange lines are at 7pm (near sunset)"
+plot(d[1:(24*5)], type='o')
+abline(v=24*(0:5)+6, col='blue') # 6am
+abline(v=24*(0:5)+12, col='red') # noon
+abline(v=24*(0:5)+19, col='orange') # 9pm
+#' Just as a reference, it's useful to note that the fluorescence is highest at night, lowest durign the day, and that there's more volatility in the time series at night when fluorescence is high.
+
+#' ##Achieving Stationarity: Time Series Decomposition
+#+ decompose-stl, fig.cap="**Figure.** Top panel shows the full time series. The second panel shows the contribution of seasonal component (diel cycle; a regularly repeating pattern). The third panel is the trend component, which includes local slopes as well as 'cycles' (oscillations w/o a fixed period). The fourth panel is the residuals."
+dts_interp <- ts(approx(x=seq_along(d)[!is.na(d)], y=d[!is.na(d)], xout=seq_along(d))$y, freq=24) # need to interpolate for stl
+stl_fit <- stl(dts_interp, s.window="periodic", t.window=24*3)
+plot(stl_fit)
+
+#' Plot shows that diel cycle (second panel) is relatively small in magnitude relative to local trends (third panel). In this analysis, I set the trend window to 3 days; I also tried a version when I took the log, but it didn't affect things too much. It looks like the residuals (fourth panel) might still have a bit of periodicity. Oddly the, the seasonal panel shows that the seasonality might be a bit more complex than a simple wave of period = 1 day --- i.e., every day there seem to be some small fluctuations at a higher frequency than the diel cycle. At the peaks of the time series there appears to be some fluctuation that isn't present in the troughs, and I think that this is what the decomposition is picking up.  
+#'   
+#' Ecological note: these peaks occur at night (fluoresence appears to be highest in dark, probably as a result of recovery from photodmg and reduction in NPQ, b/c ineffeciency should be lower at night [and thus both fluoresence and NPQ]).  
+#'   
+#' Back to the data analysis side of thigns, it's also worth lookingat the trend panel to understand what order of a Fourier series we might want to use if `fourier` is to be used to produce a set of covariates that could be used in a timer series model that would help us make this time series stationary. Every regular wave probably requires a sine-cosine pair. So if there's an important bump in the time series that isn't repeated, it requires an extra pair. Looking at this time series, I see about 3 big important bumps that aren't part of any regular series: there's a peak around 15, one from 25-40, and another big one around 85. This is super approximate (I don't have to know the timing, I'm just trying to come up with an informed guess as to what order of Fourier series I should try using first). Furthermore, there's a lot of little increases and decreases throughout --- I'm not sure if these are regularly spaced, but it's plausible that they could be. So maybe those could be estimated by a single sine-cosine pair. So there's the daily cycle (seasonal panel), the 3 big bumps in the trend panel, and a possible repeating set of bumps in the trend panel. So maybe ~5 sine-cosine pairs would be a reasonable place to start if trying to generate a Fourier series. If I try this and it look like I'm missing some important local trends that would invalidate stationarity for a particular window, I could increase the order of the Fourier series.  
+#'   
+#' Furthermore, I could try fitting the fourier series separately for each window; in that case, I would want at least 1 pair for the diel cycle (for time series with a sub-daily observation frequency), and then maybe 1 more for some sort of trend or hump in the data <shrug>.  
+
+#' ##Achieving Stationarity: Seasonal Dummy & `auto.arima()`
+#+ test-make-stationary-seasonalDummy
+aa_basline <- auto.arima(dts, max.q=0, max.p=1, max.d=0, seasonal=FALSE)
+
+seas_reg <- forecast::seasonaldummy(dts, h=length(dts))
+aa_seasDummy <- auto.arima(dts, max.q=0, max.p=1, max.d=0, seasonal=FALSE, xreg=seas_reg)
+
+dts_1window <- ts(dts[1:(24*28)], freq=24)
+seas_reg_1window <- forecast::seasonaldummy(dts_1window, h=length(dts_1window))
+aa_seasDummy_1window <- auto.arima(dts_1window, max.q=0, max.p=1, max.d=0, seasonal=FALSE, xreg=seas_reg_1window)
+
+
+#+ test-make-stationary-seasonalDummy-acfFig, fig.width=4, fig.height=7
+par(mfrow=c(2,1), mar=c(2,2,1,0.5), ps=8, cex=1, tcl=-0.15, mgp=c(1,0.15,0))
+acf(residuals(aa_basline), na.action=na.pass, lag.max=1000)
+mtext("baseline ar1 model", side=3, line=0)
+acf(residuals(aa_seasDummy), na.action=na.pass, lag.max=1000)
+mtext("ar1 model with seasonal dummy in xreg", side=3, line=0)
+#' This plot shows that the baseline ar1 model clearly still has a lot of autocorrelation in the residuals, and still has a daily cycle. The model with the dummy xreg also has autocorrelation in the residuals, but the diel cycle is much less apparent. This doesn't even get into the issue of local trends (or overall trend), but these results alone indicate that the introducing a seasonal xreg to an ar1 model doesn't satisfy model assumptions.
+
+#+ test-make-stationary-seasonalDummy-residualsFig, fig.width=4, fig.height=7
+par(mfrow=c(4,1), mar=c(2,2,1,0.5), ps=8, cex=1, tcl=-0.15, mgp=c(1,0.15,0))
+plot(residuals(aa_basline), main="residuals from baseline ar1 model")
+plot(residuals(aa_seasDummy), main="residuals full model")
+plot(ts(residuals(aa_seasDummy)[1:length(dts_1window)], freq=24), main="residuals full model, only first 28 days")
+plot(residuals(aa_seasDummy_1window), main="residuals from model fit to first 28 days")
+#' This plot is of residuals, and helps me understand how well I did at handling those local trends ... basically I wanted to eyeball whether the residuals looked like noise, or if there was a lot of structure leftover. Unfortuneately, I think there's still a ton of structure. Probably because there's a lot more going on in here than simply the seasonality, and that's all that the xreg really addressed. Looking at the time series decomposition above suggested that this would be the case, because the diel cycle was a small portion of the decomposition relative to the local trend (or residuals).
+
+
+#' ##Achieving Stationarity: Fourier Series & `auto.arima()`
+
+# fourier_reg <- forecast::fourier
+
+
+
 
 
 #'   
