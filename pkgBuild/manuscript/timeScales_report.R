@@ -359,7 +359,7 @@ print(y_embed_window_small_embed[[5]][c(TRUE,FALSE),]) # fifth window
 #' #Achieving Stationarity
 #' Here I'm going to try several approaches to making a sonde chlorophyll time series stationary while calculating AC. Initially I'll be testing these approaches on the full time series. However, what's truly relevant is that the time series is stationary within a window being analyzed. I'm using the full time series first because it's easier to just visualize one set of residuals and fit 1 model. I figure that if I can get the full tiem series to become stationary with a reasonably simple approach, then that same approach should be pretty straightforward to adapt to a 28-day window (full time series is 119 days).  
 #'   
-#+ test-make-stationary-data
+#+ test-make-stationary-data, results="hide", fig.width=4, fig.height=6
 dat <- sos_samp$samp12[lake==lakes[1] & variable==vars[1]] # take the hourly data for starters
 d <- dat[,y]
 dts <- ts(d, deltat=1/24)
@@ -374,10 +374,11 @@ plot(d[1:(24*5)], type='o')
 abline(v=24*(0:5)+6, col='blue') # 6am
 abline(v=24*(0:5)+12, col='red') # noon
 abline(v=24*(0:5)+19, col='orange') # 9pm
-#' Just as a reference, it's useful to note that the fluorescence is highest at night, lowest durign the day, and that there's more volatility in the time series at night when fluorescence is high.
+#' Just as a reference, it's useful to note that the fluorescence is highest at night, lowest durign the day, and that there's more volatility in the time series at night when fluorescence is high.  
+
 
 #' ##Achieving Stationarity: Time Series Decomposition
-#+ decompose-stl, fig.cap="**Figure.** Top panel shows the full time series. The second panel shows the contribution of seasonal component (diel cycle; a regularly repeating pattern). The third panel is the trend component, which includes local slopes as well as 'cycles' (oscillations w/o a fixed period). The fourth panel is the residuals."
+#+ decompose-stl, fig.cap="**Figure.** Top panel shows the full time series. The second panel shows the contribution of seasonal component (diel cycle; a regularly repeating pattern). The third panel is the trend component, which includes local slopes as well as 'cycles' (oscillations w/o a fixed period). The fourth panel is the residuals.", fig.width=4, fig.height=6
 dts_interp <- ts(approx(x=seq_along(d)[!is.na(d)], y=d[!is.na(d)], xout=seq_along(d))$y, freq=24) # need to interpolate for stl
 stl_fit <- stl(dts_interp, s.window="periodic", t.window=24*3)
 plot(stl_fit)
@@ -388,10 +389,10 @@ plot(stl_fit)
 #'   
 #' Back to the data analysis side of thigns, it's also worth lookingat the trend panel to understand what order of a Fourier series we might want to use if `fourier` is to be used to produce a set of covariates that could be used in a timer series model that would help us make this time series stationary. Every regular wave probably requires a sine-cosine pair. So if there's an important bump in the time series that isn't repeated, it requires an extra pair. Looking at this time series, I see about 3 big important bumps that aren't part of any regular series: there's a peak around 15, one from 25-40, and another big one around 85. This is super approximate (I don't have to know the timing, I'm just trying to come up with an informed guess as to what order of Fourier series I should try using first). Furthermore, there's a lot of little increases and decreases throughout --- I'm not sure if these are regularly spaced, but it's plausible that they could be. So maybe those could be estimated by a single sine-cosine pair. So there's the daily cycle (seasonal panel), the 3 big bumps in the trend panel, and a possible repeating set of bumps in the trend panel. So maybe ~5 sine-cosine pairs would be a reasonable place to start if trying to generate a Fourier series. If I try this and it look like I'm missing some important local trends that would invalidate stationarity for a particular window, I could increase the order of the Fourier series.  
 #'   
-#' Furthermore, I could try fitting the fourier series separately for each window; in that case, I would want at least 1 pair for the diel cycle (for time series with a sub-daily observation frequency), and then maybe 1 more for some sort of trend or hump in the data <shrug>.  
+#' Furthermore, I could try fitting the fourier series separately for each window; in that case, I would want at least 1 pair for the diel cycle (for time series with a sub-daily observation frequency), and then maybe 1 more for some sort of trend or hump in the data (shrug).  
 
 #' ##Achieving Stationarity: Seasonal Dummy & `auto.arima()`
-#+ test-make-stationary-seasonalDummy
+#+ test-make-stationary-seasonalDummy, fig.width=4, fig.height=6
 aa_basline <- auto.arima(dts, max.q=0, max.p=1, max.d=0, seasonal=FALSE)
 
 seas_reg <- forecast::seasonaldummy(dts, h=length(dts))
@@ -404,9 +405,9 @@ aa_seasDummy_1window <- auto.arima(dts_1window, max.q=0, max.p=1, max.d=0, seaso
 
 #+ test-make-stationary-seasonalDummy-acfFig, fig.width=4, fig.height=7
 par(mfrow=c(2,1), mar=c(2,2,1,0.5), ps=8, cex=1, tcl=-0.15, mgp=c(1,0.15,0))
-acf(residuals(aa_basline), na.action=na.pass, lag.max=1000)
+Acf(residuals(aa_basline), na.action=na.pass, lag.max=1000)
 mtext("baseline ar1 model", side=3, line=0)
-acf(residuals(aa_seasDummy), na.action=na.pass, lag.max=1000)
+Acf(residuals(aa_seasDummy), na.action=na.pass, lag.max=1000)
 mtext("ar1 model with seasonal dummy in xreg", side=3, line=0)
 #' This plot shows that the baseline ar1 model clearly still has a lot of autocorrelation in the residuals, and still has a daily cycle. The model with the dummy xreg also has autocorrelation in the residuals, but the diel cycle is much less apparent. This doesn't even get into the issue of local trends (or overall trend), but these results alone indicate that the introducing a seasonal xreg to an ar1 model doesn't satisfy model assumptions.
 
@@ -416,12 +417,189 @@ plot(residuals(aa_basline), main="residuals from baseline ar1 model")
 plot(residuals(aa_seasDummy), main="residuals full model")
 plot(ts(residuals(aa_seasDummy)[1:length(dts_1window)], freq=24), main="residuals full model, only first 28 days")
 plot(residuals(aa_seasDummy_1window), main="residuals from model fit to first 28 days")
-#' This plot is of residuals, and helps me understand how well I did at handling those local trends ... basically I wanted to eyeball whether the residuals looked like noise, or if there was a lot of structure leftover. Unfortuneately, I think there's still a ton of structure. Probably because there's a lot more going on in here than simply the seasonality, and that's all that the xreg really addressed. Looking at the time series decomposition above suggested that this would be the case, because the diel cycle was a small portion of the decomposition relative to the local trend (or residuals).
+#' This plot is of residuals, and helps me understand how well I did at handling those local trends ... basically I wanted to eyeball whether the residuals looked like noise, or if there was a lot of structure leftover. Unfortuneately, I think there's still a ton of structure. Probably because there's a lot more going on in here than simply the seasonality, and that's all that the xreg really addressed. Looking at the time series decomposition above suggested that this would be the case, because the diel cycle was a small portion of the decomposition relative to the local trend (or residuals).  
 
 
 #' ##Achieving Stationarity: Fourier Series & `auto.arima()`
+#' First, a handy function to fill-in NA's  
+#+ fill-na-function
+fill_na <- function(x){
+	xvec <- seq_along(x)
+	navec <- is.na(x)
+	filled_x <- approx(xvec[!navec], y=x[!navec], xout=xvec)$y
+	if(is.ts(x)){
+		filled_x <- ts(filled_x, freq=frequency(x))
+	}
+	return(filled_x)
+}
+#' ###Closer Inspection, & Approaches That don't Work
+#'   
+#'   
+#' First let's look at the spectrum for the time series, and see how much variability we can get rid of by first removing linear trend and seasonality  
+#+ spec-tslmResiduals-plot, fig.height=6, fig.width=4, fig.cap="**Figure.** Top panel is spectrum. Bottom panel is residuals after removing linear trend and seasonality using tslm(), which is a really handy function."
+dts_interp <- fill_na(dts) # need to interpolate for stl
+d_spec <- spec.ar(dts_interp, plot=FALSE) # was messing with this to find frequency, led me to discover tslm()
+par(mfrow=c(2,1))
+plot(d_spec)
+plot(residuals(tslm(dts ~ trend + season)))
+#' After removing trend a seasonality, there is still a lot of variability. The time series still looks pretty similar.  
+#'   
+#'   
 
-# fourier_reg <- forecast::fourier
+#' I then started playing with high-order polynomials. The above time series is obviously much longer and more complex than what we'll ever have to deal with in a single 28-day window. However, it's clear that removing a linear trend wouldn't handle the complex patterns within a 28-day window, either (namely, a quadratic, or higher polynomial ... a window with multiple "humps"). So now I'm going to play around with adding polynomial predictors to `auto.arima`.  
+#+ auto.arima-polyPredict-test1, results="markup"
+seas_reg <- forecast::seasonaldummy(dts, h=length(dts))
+trend_var <- seq_along(dts)/(1*10^(nchar(length(dts))-1))
+trend_var2 <- trend_var^2
+trend_var3 <- trend_var^3
+mm <- cbind(seas_reg, trend_var, trend_var2, trend_var3)
+# (aa_test <- auto.arima(dts_interp, xreg=mm)) # didn't select an AR term, slected differencing
+(a_test <- arima(dts_interp, xreg=mm, order=c(1, 0, 0))) # forcing model to select at AR term, and no differencing
+#'   
+#'   
+
+#' It's tricky to balance the ARIMA components with constant predictor variables. In particular, the differencing. I learned a thing or two about how differencing interacts with constants in an ARIMA model to effectively remove a trend: https://www.otexts.org/fpp2/arima-modelling-in-r.html#eq:mu I knew some of this, but I hadn't realized how the constant and differencing degree interacted. There's the problem that `Arima` won't allow you to slect d > 2 and still have a constant --- therefore, you can't capture a quadratic or higher pattern with this approach. Furthermore, I'm not sure how this works with the quadratic terms having different coefficients. But I decided to play around anyway.
+#+ auto.arima-differencing, fig.height=6, fig.width=4, fig.cap="**Figure** A model that does not allow differencing but includes a linear and quadratic temporal predictor. This plot is the time series decomposition of that model's residuals. "
+plot(stl(residuals(auto.arima(dts_interp, max.q=0, max.p=1, max.d=0, seasonal=FALSE, allowdrift=F, xreg=seas_reg)), s.window='periodic'))
+#+ auto.arima-differencing2, fig.height=6, fig.width=4, fig.cap="**Figure** Trying to use differencing and constants to capture polynomial patterns. The figure is of the decomposition of the residuals of a model with ARIMA(1,1,0) errors and seasonal dummy predictors. The trend component still shows lots of pattern", results="markup"
+# https://www.otexts.org/fpp2/arima-modelling-in-r.html#eq:mu
+(aa_test2 <- auto.arima(dts_interp, max.q=0, max.p=1, max.d=7, seasonal=FALSE, allowdrift=TRUE, xreg=seas_reg))
+plot(stl(residuals(aa_test2), s.window='periodic'))
+
+# # try similar to aa_test2, but try forcing a quad trend?
+# # auto.arima excludes this possibility b/c of interest in forecasting, but not as dangerous when not forecasting
+# aa_test3 <- auto.arima(dts_interp, max.q=0, max.p=1, max.d=7, seasonal=FALSE, allowdrift=TRUE, xreg=cbind(seas_reg, trend_var, trend_var2))
+# plot(stl(residuals(aa_test3), s.window='periodic'))
+#' These plots are time series decompositions of residuals of two models: the first doesn't have differencing/ drift, the second does. Allowing for differencing does a pretty good job of absorbing a lot of the low-frequency pattern in the "trend" component of the decomposition. I also tried adding linear and quadratic temporal trends to the `xreg`, but this didn't change the decomposition output much.  
+#'   
+#' The problem with this approach becomes apparent when you look at the AR(1) coefficient of the models. For example, `aa_test2` has an AR1 coefficient of **`r unname(round(aa_test2$coef['ar1'], 3))`**. The coefficient is negative. This seems suspicious to me. *A priori*, I know that a first order polynomial isn't going to capture much of the local nonstationarity (patterns that would appear as nonstationary in a windowed time series), and my hunch is that the AR1 term is taking on a weird value to account for this limited description of low-frequency pattern.  
+#'   
+#' To really demonstrate why this matters, I need to examine a window-sized (28 days) subset of the time series, and analyze that. This will provide a much clearer and transferable/ to-the-point test of how to handle nonstationarity when calculating AC as an early warning statistic.  
+#'   
+
+
+#' ###Test the Fourier Approach
+#' Before I get into using a subset of the time series, let's test the Fourier series as a way of removing the seasonality and other wobbles. The main challenge with this approach arises when you don't know the frequency of the oscillations *a priori*, or if there aren't oscillations so much as local trends. Ultimately, I decided against this approach, but I'll make note of my experience with it.  
+#'   
+#' First thing to note is that I have to define a `msts` --- multi-seasonality time series. To use the Fourier function from the `forecast` package, I need to define all possible frequencies ahead of time. Unfortunately, `forecast::findfrequency` only tries to estimate a dominant frequency; moreover, the source code for `forecast::findfrequency` reveals that this approach to finding the frequency depends on first making the time series stationary (the function uses `forecast::tslm`) ... the very problem we're trying to address in the first place. You can begin to see the problem I'm facing here. Anyway, I took a whack at it using daily, weekly, fortnightly, and monthly frequencies. I have no idea how meaningful these are, but ti was a starting place.
+#+ auto.arima-fourier, fig.width=4, fig.height=6, fig.cap="**Figure.** Decomposition of an auto.arima model where some of the xreg are from a Fourier series."
+dmsts <- msts(fill_na(d), seasonal.periods=c(24, 24*7, 24*14, 24*28), ts.freq=24) # define multiple periods
+fourier_reg <- forecast::fourier(dmsts, K=c(6, 4, 4, 4)) # create Fourier series, defining the # of sine-cosine pairs per frequency
+# aa_four <- auto.arima(dmsts, seasonal=FALSE, xreg=fourier_reg)
+aa_four <- auto.arima(dmsts, seasonal=FALSE, xreg=fourier_reg, max.q=0, max.p=1, max.d=0)
+aa_four_resid <- residuals(aa_four)
+stl_aa_fit <- stl(aa_four_resid, s.window="periodic", t.window=24*3)
+plot(stl_aa_fit)
+#' The result of this model fit, as you can see, is really disappointing: the residuals have tons of structure and remove far less of the seasonal component than using the seasonal dummy variable. To be fair, there were 23 columns to the matrix of seasonal dummy variables, whereas I only had 12 columns dedicated to sine or cosine waves with a daily period. So this is with ~half the parameters. But still.  
+#'   
+#' Furthermore, the trend component of the decomposition reveals a lot of pattern. This is not much better than some of the less successful approaches that I tried previously. The patterns are similar, but just of smaller overall magntidue. So a bit better, but not really doing a great job. If the Fourier series can be made to work, it would likely require paying a lot of careful attention to the frequencies and the number of Fourier pairs. Fitting that, or trying all combinations, would be intensive.  
+#'   
+#'   
+
+
+#' ##Achieving Stationarity: 1 Month of Data fit with Polynomials + Arima()
+#' It'll be helpful to fit the models using 1 month of data. Based on previous experiments, the seasonal dummy term and a polynomial might do the trick. Fitting a polynomial to the full time series is not a very transferrable idea --- it would have to be a pretty high order polynomial, much higher than I would want for a 28-day window (most likely). Nonetheless, I know ahead of time that I wouldn't want the same order polynomial for all windows; so in this sense, the approach I take here needs to be both somewhat conservative (fitting high-order polynomials is sketchy) and generic (don't know what order is appropriate ahead of time).  
+#'   
+#+ stationarity-subsetTimeSeries, fig.width=4, fig.height=6, fig.cap="**Figure.** Decomposition of a month of data that has a hump in the middle of it."
+# example of a subset of d that would be best-fit by a quadratic ... what happens?
+dts_quad <- fill_na(ts(d[540:1211], freq=24)) # 28 days with a peak in the middle
+# dts_quad
+# plot(dts_quad)
+plot(stl(dts_quad, s.window="per"))
+#' This chunk of data is a good example of a potential challenge. It has a big hump in the middle. So I'd suspect a 2nd order polynomial. Of course, I also need to take care of the daily cycle.  
+#'   
+
+#+ trend-xreg-function
+# This function creates dummy variables for polynomials ... to be used in regression
+trend_xreg <- function(exp.order, y){
+	x <- seq_along(y)
+	hnames <- paste0("trend",1:exp.order)
+	
+	raise_order <- function(o){
+		matrix(x^o, ncol=1)
+	}
+	omat <- sapply(1:exp.order, raise_order)
+	dimnames(omat) <- list(NULL, hnames)
+	return(scale(omat))
+}
+
+
+#+ select-sar-poly-function
+# AR Model with X-reg (e.g., Seasonal Dummy) and Selected Degree of Polynomial Trend
+select_ar_xreg_poly <- function(series, poly_max, xreg){
+	
+	if(missing(xreg)){
+		xreg <- 1
+	}else{
+		xreg <- cbind(1, xreg)
+	}
+	
+	fit_each <- function(poly_order){
+		if(poly_order > 0){
+			forecast::Arima(series, order=c(1,0,0), xreg=cbind(xreg, trend_xreg(poly_order, series)), include.mean=FALSE)
+		}else{
+			forecast::Arima(series, order=c(1,0,0), xreg=cbind(xreg), include.mean=FALSE)
+		}
+	}
+	
+	mod_list <- lapply(1:poly_max, fit_each)
+	aiccs <- sapply(mod_list, function(x)x$aicc)
+	
+	# get_ar <- function(x){
+# 		round(unname(x$coef['ar1']), 3)
+# 	}
+# 	ars <- sapply(mod_list, get_ar)
+	
+	aiccs_adjusted <- aiccs + seq_along(aiccs)*10 # to make sure a simpler model is chosen unless a more complicated one is more than 10 aicc points better (per extra parameter)
+	mod_out <- mod_list[[which.min(aiccs_adjusted)]]
+	return(mod_out)
+}
+
+#+ getARCoef-function
+get_ar <- function(x){
+	round(unname(x$coef['ar1']), 3)
+}
+get_ar_name <- function(x){
+	paste("AR =", get_ar(x))
+}
+
+#+ ar-seasonDummy-lineTrend, fig.width=4, fig.height=4, fig.cap="**Figure** 28-day time series of Peter chlorophyll (black line) and model fitted values (red). Model is an AR(1) with fixed regressors of a seasonal dummy and a linear trend."
+seas_reg_quad <- forecast::seasonaldummy(dts_quad, h=length(dts_quad))
+xreg_linear <- cbind(1, seas_reg_quad, trend_xreg(1, dts_quad))
+a_test_linear <- forecast::Arima(dts_quad, order=c(1,0,0), xreg=xreg_linear, include.mean=FALSE)
+plot(dts_quad)
+lines(fitted(a_test_linear), col='red')
+mtext(text=get_ar_name(a_test_linear), side=3, line=-1, adj=0.95)
+# plot(forecast(a_test_linear, xreg=cbind(1, seas_reg_quad, trend1=(1:length(dts_quad)))))
+#' This figure shows the fitted values and AC coefficient when a linear trend is estimated alongside the AR(1) and a seasonal dummy. It's important to recognize that these are 1-step-ahead predictions (for the ar1 component). Import to note is how the predicted values are overestimates at the beginning and the end of the time series. Furthermore, note that the AR1 coefficient is `r get_ar(a_test_linear)`. These features contrast between this model witha  linear trend and an upcoming model with an AICc-selected quadratic model.  
+#'   
+#'   
+#+ ar-seasonDummy-lineTrend-residualSTL, fig.width=4, fig.height=6, fig.cap="**Figure.** Decomposition of residuals of a AR1 model with seasonal dummies and linear trend as predictors. Point is that the linear trend is insufficient."
+plot(stl(residuals(a_test_linear), s.window="per"))
+#' This figure furthers the point that the linear trend is insufficient as a xreg in the ARIMA model --- a decomposition of the residuals of this model still shows quadratic nonstationarity in the "trend" panel.  
+#'   
+
+
+#+ ar-seasnDummy-polyTrend-select, fig.width=4, fig.height=4, fig.cap="**Figure.**  28-day time series of Peter chlorophyll (black line) and model fitted values (red). Model is an AR(1) with fixed regressors of a seasonal dummy and an AICc-selected polynomial trend (quadratic selected)."
+seas_reg_quad <- forecast::seasonaldummy(dts_quad, h=length(dts_quad))
+polyAR_fit <- select_ar_xreg_poly(dts_quad, poly_max=6, xreg=seas_reg_quad)
+
+plot(dts_quad)
+lines(fitted(polyAR_fit), col='red')
+mtext(text=get_ar_name(polyAR_fit), side=3, line=-1, adj=0.95)
+#' This figure shows that the quadratic model does a better job of estimating chlorophyll at the start and finish of the time series (the model with a linear trend overestimated chlorophyll at these points). Furthermore, choosing a linear trend vs a quadratic trend has a noticable impact on the AR estimate: the linear trend model estimated the AC as `r get_ar(a_test_linear)`, whereas the quadratic trend model is estimating the AC as `r get_ar(polyAR_fit)`.  
+#'   
+#'   
+
+#+ ar-seasonDummy-polyTrend-resids, fig.width=4, fig.height=6, fig.cap="**Figure.**  Decomposition of residuals of a model that has AR(1) with fixed regressors of a seasonal dummy and an AICc-selected polynomial trend (quadratic selected)."
+plot(stl(residuals(polyAR_fit), s.window="per"))
+#' Here we see a decomposition of the residuals of an AR model with a term for a quadratic trend. The "trend" portion of the decomposition shows that, while there is a substantial amount of low-frequency of variability, the pattern appears to be stationary (note: I don't mean this literally. The residuals still contain pattern --- ar, ma, etc. I would estimate a full-blown ARIMA model for this, but I don't want to complicate the interpretation of the lag-1 autocorrelation). The "seasonal" panel shows some pattern, but the magnitude is tiny, indicating that most of the strictly periodic pattern has been accounted for.  
+#'   
+#' One issue I may face with a higher-frequency time series is that the 24-hour seasonality will be computationally intensive to capture with dummy variables (~288 parameters, vs currently I only need ~24). In those cases, I might have to adapt the Fourier approach to capture the seasonality.
+
+
+
+
 
 
 
