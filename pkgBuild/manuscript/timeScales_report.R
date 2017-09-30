@@ -316,7 +316,8 @@ mtext("Sub-Stat, Sub Window", outer=TRUE, line=-1, side=3, adj=0.985)
 #'   
 #' For next steps I need to 1) check my code; 2) try higher- and lower- resolutions than what I'm using here in order to "break" the AC indicator (get it to not show a warning); 3) If I can't "break" the indicator, I should apply & read about DFA (I'm thinking that if I can't break AC, then it is scale-free, though I'm pretty sure that DFA as a warning just means that the scale-free property changes [decays?] as the tipping point is approach, and in that case, DFA wouldn't tell me what I want to know); 4) after 2&3, plot a heat map of the ACF (`acf()`), because that will explicitly show me how AC is changing over time and across time scales. My guess is that this is essentially going to be identical to a heat map based on `spec.ar()`.  
 #'   
-#' **Note:** (25-Sept-2017) I've checked my code an made some changes. I found an error in my code to subset the statistic (simple didn't do the subset, oops). Once I fixed this error, weird looking oscillations appeared in some of the output (see above figures, and below for explanation); this caught me off guard and I spent a while understanding it (and check my code many more times). Furthermore, I realized that the presence of a trend is probably having a massive effect on autocorrelation (see further below for explanation). Of the above 'next steps', I think the most relevant is the suggestion to try `spec.ar()`. I've adapted code to play around with time series resolutions easily, but before I try that, I need to remove trends from the time series (that'll probably 'break' the high-frequency statistic).
+#' **Note:** (25-Sept-2017) I've checked my code an made some changes. I found an error in my code to subset the statistic (simple didn't do the subset, oops). Once I fixed this error, weird looking oscillations appeared in some of the output (see above figures, and below for explanation); this caught me off guard and I spent a while understanding it (and check my code many more times). Furthermore, I realized that the presence of a trend is probably having a massive effect on autocorrelation (see further below for explanation). Of the above 'next steps', I think the most relevant is the suggestion to try `spec.ar()`. I've adapted code to play around with time series resolutions easily, but before I try that, I need to remove trends from the time series (that'll probably 'break' the high-frequency statistic).  
+#'   
 
 
 #' ###Explanation for why sub-stat sub-window oscillates
@@ -375,6 +376,7 @@ abline(v=24*(0:5)+6, col='blue') # 6am
 abline(v=24*(0:5)+12, col='red') # noon
 abline(v=24*(0:5)+19, col='orange') # 9pm
 #' Just as a reference, it's useful to note that the fluorescence is highest at night, lowest durign the day, and that there's more volatility in the time series at night when fluorescence is high.  
+#'   
 
 
 #' ##Achieving Stationarity: Time Series Decomposition
@@ -390,6 +392,7 @@ plot(stl_fit)
 #' Back to the data analysis side of thigns, it's also worth lookingat the trend panel to understand what order of a Fourier series we might want to use if `fourier` is to be used to produce a set of covariates that could be used in a timer series model that would help us make this time series stationary. Every regular wave probably requires a sine-cosine pair. So if there's an important bump in the time series that isn't repeated, it requires an extra pair. Looking at this time series, I see about 3 big important bumps that aren't part of any regular series: there's a peak around 15, one from 25-40, and another big one around 85. This is super approximate (I don't have to know the timing, I'm just trying to come up with an informed guess as to what order of Fourier series I should try using first). Furthermore, there's a lot of little increases and decreases throughout --- I'm not sure if these are regularly spaced, but it's plausible that they could be. So maybe those could be estimated by a single sine-cosine pair. So there's the daily cycle (seasonal panel), the 3 big bumps in the trend panel, and a possible repeating set of bumps in the trend panel. So maybe ~5 sine-cosine pairs would be a reasonable place to start if trying to generate a Fourier series. If I try this and it look like I'm missing some important local trends that would invalidate stationarity for a particular window, I could increase the order of the Fourier series.  
 #'   
 #' Furthermore, I could try fitting the fourier series separately for each window; in that case, I would want at least 1 pair for the diel cycle (for time series with a sub-daily observation frequency), and then maybe 1 more for some sort of trend or hump in the data (shrug).  
+#'   
 
 #' ##Achieving Stationarity: Seasonal Dummy & `auto.arima()`
 #+ test-make-stationary-seasonalDummy, fig.width=4, fig.height=6
@@ -418,10 +421,12 @@ plot(residuals(aa_seasDummy), main="residuals full model")
 plot(ts(residuals(aa_seasDummy)[1:length(dts_1window)], freq=24), main="residuals full model, only first 28 days")
 plot(residuals(aa_seasDummy_1window), main="residuals from model fit to first 28 days")
 #' This plot is of residuals, and helps me understand how well I did at handling those local trends ... basically I wanted to eyeball whether the residuals looked like noise, or if there was a lot of structure leftover. Unfortuneately, I think there's still a ton of structure. Probably because there's a lot more going on in here than simply the seasonality, and that's all that the xreg really addressed. Looking at the time series decomposition above suggested that this would be the case, because the diel cycle was a small portion of the decomposition relative to the local trend (or residuals).  
+#'   
 
 
 #' ##Achieving Stationarity: Fourier Series & `auto.arima()`
 #' First, a handy function to fill-in NA's  
+#'   
 #+ fill-na-function
 fill_na <- function(x){
 	xvec <- seq_along(x)
@@ -595,10 +600,57 @@ mtext(text=get_ar_name(polyAR_fit), side=3, line=-1, adj=0.95)
 plot(stl(residuals(polyAR_fit), s.window="per"))
 #' Here we see a decomposition of the residuals of an AR model with a term for a quadratic trend. The "trend" portion of the decomposition shows that, while there is a substantial amount of low-frequency of variability, the pattern appears to be stationary (note: I don't mean this literally. The residuals still contain pattern --- ar, ma, etc. I would estimate a full-blown ARIMA model for this, but I don't want to complicate the interpretation of the lag-1 autocorrelation). The "seasonal" panel shows some pattern, but the magnitude is tiny, indicating that most of the strictly periodic pattern has been accounted for.  
 #'   
-#' One issue I may face with a higher-frequency time series is that the 24-hour seasonality will be computationally intensive to capture with dummy variables (~288 parameters, vs currently I only need ~24). In those cases, I might have to adapt the Fourier approach to capture the seasonality.
+#' One issue I may face with a higher-frequency time series is that the 24-hour seasonality will be computationally intensive to capture with dummy variables (~288 parameters, vs currently I only need ~24). In those cases, I might have to adapt the Fourier approach to capture the seasonality.  
+#'   
 
+#' ##Achieving Stationarity: Remove 24-hr Seasonality w/ Fourier
+#' With a higher sampling frequency, removing seasonality with seasonal dummy variables becomes computationally intensive b/c each observation per day gets its own parameter. So 24 observations per day (hourly) is managable, but 288 observations per day (5-minutes) is not. To solve this problem, I'll invest more in figuring out how to use the Fourier series to deal with daily seasonality.  
+#'   
+#' Previously, my primary disappointment in the Fourier was my hopes that it could remove lower-frequency variation. This problem has been primarilty solved through the windowing of the time series to 28 days, and the addition of polynomial detrending (with the degree of the polynomial selected by AICc, which protects against overfitting, the primary problem of polynomials).  
+#'   
+#+ ar-fourier-poly, results="markup", fig.width=4, fig.height=6, fig.cap="**Figure** Using Fourier to account for seasonality instead of seasonal dummy variables. Decomposition of residuals of model with AR term, quadratic trend, and Fourier series for seasonal regressors."
+select_ar_fourier_poly <- function(series, poly_max, K_max){
+	stopifnot(is.ts(series))
+	
+	# Determine the best polynomial order
+	# **Just for the purpose of fitting the best fourier order**
+	# Will re-fit ideal poly order along with AR term once fourier order determined
+	poly_list <- rep(NA, poly_max)
+	for(p in 1:poly_max){
+		treg <- trend_xreg(p, series)
+		t_mod <- lm(series ~ treg)
+		poly_list[p] <- AIC(t_mod, k=20) # introduce a very strong penalty for additional parameters
+	}
+	temp_poly <- which.min(poly_list)
+	
+	# Functions for Fourier
+	getF <- function(tf){forecast::fourier(series, tf)}
+	fit_each_noPoly <- function(fourier_order){
+		forecast::Arima(series, order=c(1,0,0), xreg=cbind(1, getF(fourier_order)), include.mean=FALSE)
+	}
+	fit_each_poly <- function(fourier_order){
+		forecast::Arima(series, order=c(1,0,0), xreg=cbind(1, getF(fourier_order), trend_xreg(temp_poly, series)), include.mean=FALSE)
+	}
+	
+	# Get AIC for fourier
+	fourier_orders <- 1:K_max
+	if(temp_poly>0){
+		mod_list <- lapply(fourier_orders, fit_each_noPoly)
+	}else{
+		mod_list <- lapply(fourier_orders, fit_each_poly)
+	}
+	aiccs <- sapply(mod_list, function(x)x$aicc)
+	# aiccs_adjusted <- aiccs + seq_along(aiccs) #*10
+	best_fo <- fourier_orders[which.min(aiccs)]
+	t_reg <- getF(best_fo)
+	
+	# Reselect poly order now that we have fourier selected
+	mod_out <- select_ar_xreg_poly(series, poly_max, xreg=t_reg)
+	return(mod_out)
+}
 
-
+(o <- select_ar_fourier_poly(dts_quad, 4, 6)) # a test run
+plot(stl(residuals(o), s.window='per'))
 
 
 
