@@ -394,6 +394,7 @@ plot(stl_fit)
 #' Furthermore, I could try fitting the fourier series separately for each window; in that case, I would want at least 1 pair for the diel cycle (for time series with a sub-daily observation frequency), and then maybe 1 more for some sort of trend or hump in the data (shrug).  
 #'   
 
+
 #' ##Achieving Stationarity: Seasonal Dummy & `auto.arima()`
 #+ test-make-stationary-seasonalDummy, fig.width=4, fig.height=6
 aa_basline <- auto.arima(dts, max.q=0, max.p=1, max.d=0, seasonal=FALSE)
@@ -609,8 +610,12 @@ plot(stl(residuals(polyAR_fit), s.window="per"))
 #' Previously, my primary disappointment in the Fourier was my hopes that it could remove lower-frequency variation. This problem has been primarilty solved through the windowing of the time series to 28 days, and the addition of polynomial detrending (with the degree of the polynomial selected by AICc, which protects against overfitting, the primary problem of polynomials).  
 #'   
 #+ ar-fourier-poly, results="markup", fig.width=4, fig.height=6, fig.cap="**Figure** Using Fourier to account for seasonality instead of seasonal dummy variables. Decomposition of residuals of model with AR term, quadratic trend, and Fourier series for seasonal regressors."
-select_ar_fourier_poly <- function(series, poly_max, K_max){
-	stopifnot(is.ts(series))
+select_ar_fourier_poly <- function(series, poly_max, K_max, freq=NULL){
+	if(!is.ts(series)){
+		stopifnot(!is.null(freq))
+		series <- ts(series, freq=freq)
+	}
+	# stopifnot(is.ts(series))
 	
 	# Determine the best polynomial order
 	# **Just for the purpose of fitting the best fourier order**
@@ -653,9 +658,89 @@ select_ar_fourier_poly <- function(series, poly_max, K_max){
 plot(stl(residuals(o), s.window='per'))
 
 
+#' #Stationary Rolling AC
+#+ full-stationary-ac-fourier-poly, fig.width=4, fig.height=4, fig.cap="**Figure.** Time seies of rolling autocorrelation. No subsetting of the statistic or the window, but the time series is hourly. The autocorrelation was calculated using `Arima()`, with `xreg` set to a Fourier series and a polynomial trend. The size the Fourier series and order of the polynomial was selected by AIC for each window. Maximum size and order were each set to 6. This took a pretty long time to run.", results='markup'
+Sys.time()
+ac1.stationary <- function(series, poly_max=6, K_max=6, freq=NULL){
+	get_ar(select_ar_fourier_poly(series, poly_max=poly_max, K_max=K_max, freq=freq))
+}
+ac1.stationary.model <- function(series, poly_max=6, K_max=6, freq=NULL){
+	select_ar_fourier_poly(series, poly_max=poly_max, K_max=K_max, freq=freq)
+}
 
+y <- ts(sos_samp$samp12[lake==lakes[1] & variable==vars[1], y], freq=24*60/5/agg_steps[2])
+x <- sos_samp$samp12[lake==lakes[1] & variable==vars[1], x]
 
+blah <- roll_ts(y=y, width=win_days*24*60/5/agg_steps[2], FUN=ac1.stationary, x=x, freq=24*60/5/agg_steps[2]) # agg_steps[2] corresponds to samp12
+plot(blah, type='l')
+Sys.time()
 
+#' This look a lot like the normal calculation of autocorrelation, except that 1) the AC doesn't increase as early in the time series (here the increase doesn't start until around 190, previously increase started around 165); 2) after about day 210 the AC declines down to original levels, whereas previously the decline to original levels didn't occur until after day 240.  
+#'   
+#'   
+
+#' ##Stationary Rolling AC: Inspect Windows
+#+ rolling-window-inspect-for-stationarity, results='markup'
+Sys.time()
+y <- ts(sos_samp$samp12[lake==lakes[1] & variable==vars[1], y], freq=24*60/5/agg_steps[2])
+x <- sos_samp$samp12[lake==lakes[1] & variable==vars[1], x]
+rollAC_12_64 <- roll_ts(y=y, width=win_days*24*60/5/agg_steps[2], by=64, FUN=ac1.stationary.model, x=x, freq=24*60/5/agg_steps[2])
+rollAC_12_64[!is.na(x),plot(x, sapply(y, get_ar), type='l')]
+
+plot_roll_pieces <- function(X, plot_interactive=FALSE){
+	X2 <- X[!is.na(x)]
+	
+	pfun <- function(x, day_plot){
+		if(missing(day_plot)){day_plot <- x[1, x]}
+		x2 <- x[x==day_plot]
+		mod <- x2[,y][[1]]
+		day <- x2[,x]
+		
+		xreg_names <- colnames(mod$xreg)
+		ts_freq <- frequency(mod$x)
+		xreg_pred <- ts(mod$xreg %*% mod$coef[names(mod$coef)%in%xreg_names], freq=ts_freq, start=day)
+		
+		trend_label <- paste(xreg_names[grepl("trend[0-9]{1}", xreg_names)], collapse=" + ")
+		ar_label <- get_ar_name(mod)
+		
+		par(mfrow=c(3,1), mar=c(2.5,2.5,1,0.5), ps=8, cex=1, mgp=c(1.25,0.25,0), tcl=-0.25)
+		plot(ts(mod$x, freq=ts_freq, start=day), lwd=1) # observed time series
+		lines(ts(fitted(mod), freq=ts_freq, start=day), col='red') # fitted time series
+		lines(xreg_pred, col='blue') # pattern from fourier + polynomial trend
+		lines(ts(mod$x, freq=ts_freq, start=day), lwd=4, col=adjustcolor('black', 0.2))
+		mtext(ar_label, side=3, line=0.05, adj=0.95, font=2)
+		mtext(trend_label, side=3, line=0.05, adj=0.05)
+		
+		plot(ts(residuals(mod), freq=ts_freq, start=day), type='l')
+		
+		Acf(residuals(mod), na.action=na.pass, ylab="ACF of Residuals")
+	}
+	
+	nmax <- nrow(X2)
+	if(interactive() & plot_interactive){
+		day_ind <- 1
+		input <- -1
+		while(!input%in%c("q","Q")){
+			pfun(X2, X2[day_ind, x])
+			input <- readline("Enter day number, hit enter, or type 'q' or 'Q'\n\n")
+			if(input=="" & day_ind+1>nmax){
+				input <- 'q'
+			}else{
+				if(input==""){
+					day_ind <- day_ind + 1L
+				}
+			}
+		
+		}
+	}else{
+		day_inds <- seq(1, nmax, length.out=6)
+		holder <- lapply(day_inds, function(ind)pfun(X2, X2[ind, x]))
+	}
+
+}
+Sys.time()
+
+plot_roll_pieces(rollAC_12_64)
 
 #'   
 #' \FloatBarrier  
