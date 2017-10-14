@@ -742,6 +742,85 @@ Sys.time()
 
 plot_roll_pieces(rollAC_12_64)
 
+#' #Detrender
+#+ seriousDetrending
+detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3){
+	
+	full_poly <- trend_xreg(max_poly, x)
+	full_fourier <- forecast::fourier(x, max_fourier)
+	
+	get_interaction <- function(p, f){
+		int_list <- structure(vector("list", ncol(p)), .Names=colnames(p))
+		for(pp in 1:ncol(p)){
+			PP <- p[,pp] #pick this trend
+			pfmat <- matrix(NA, ncol=ncol(f), nrow=nrow(f))
+			for(ff in 1:ncol(f)){	
+				pfmat[,ff] <- f[,ff]*PP
+			}
+			colnames(pfmat) <- colnames(f)
+			int_list[[pp]] <- pfmat
+		}
+		return(int_list)
+	}
+	full_interaction_list <- get_interaction(p=full_poly, f=full_fourier)
+	
+	get_mm <- function(p, f, i){
+		pmm <- full_poly[,1:p, drop=FALSE]
+		get_fmm <- function(x, f){
+			x[,1:min(2*f, ncol(x))]
+		}
+		fmm <- get_fmm(full_fourier, f)
+		
+		if(i == 0){
+			mm <- cbind(intercept=1, pmm, fmm)
+		}else{
+			imm_list <- lapply(full_interaction_list[1:i], get_fmm, f=f)
+			for(l in 1:length(imm_list)){
+				dimnames(imm_list[[l]])[[2]] <- paste(dimnames(imm_list[[l]])[[2]], names(imm_list)[l], sep='-')
+			}
+			imm <- do.call(cbind, imm_list)
+		
+			mm <- cbind(intercept=1, pmm, fmm, imm)
+		}
+		return(mm)
+	}
+	
+	pfi_combos0 <- expand.grid(p=1:max_poly, f=1:max_fourier, i=0:max_interaction)
+	limit_interactionOrder <- pfi_combos0[,3] <= pfi_combos0[,1] #& pfi_combos0[,3] <= pfi_combos0[,2]
+	pfi_combos <- pfi_combos0[limit_interactionOrder,]
+	
+	
+	mod_aicc <- function(m){
+		X <- do.call(get_mm, as.list(pfi_combos[m,]))
+		tX <- t(X)
+		K <- ncol(X)
+		bhat <- solve(tX%*%X)%*%tX%*%Y
+		Yhat <- X%*%bhat
+		resid <- Y - Yhat
+		s2 <- sd(resid)
+		NLL <- -sum(dnorm(resid, mean=0, sd=s2, log=TRUE))
+		correction <- (2*K*(K+1))/(nrow(X) - K - 1)
+		AICc <- 2*K + 2*NLL + correction
+		return(AICc)
+	}
+	Y <- fill_na(as.numeric(x)) # use notation that's easier to recognize in the following
+	AICcs <- sapply(1:nrow(pfi_combos), mod_aicc)
+	# for(m in 1:nrow(pfi_combos)){
+# 		mod_aicc(m)
+# 	}
+	X <- do.call(get_mm, as.list(pfi_combos[which.min(AICcs),]))
+	resid <- c(Y - X%*%(solve(t(X)%*%X)%*%t(X)%*%Y))
+	resid <- ts(resid, freq=frequency(x))
+	return(resid)
+}
+detrendR(dts, 10, 6, 4)
+
+# Rprof(tmp <- tempfile(), memory.profiling=TRUE)
+# detrendR(dts_quad)
+# Rprof()
+# summaryRprof(tmp, memory="both")
+
+
 #'   
 #' \FloatBarrier  
 #'   
