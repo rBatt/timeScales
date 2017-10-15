@@ -363,7 +363,7 @@ print(y_embed_window_small_embed[[5]][c(TRUE,FALSE),]) # fifth window
 #+ test-make-stationary-data, results="hide", fig.width=4, fig.height=6
 dat <- sos_samp$samp12[lake==lakes[1] & variable==vars[1]] # take the hourly data for starters
 d <- dat[,y]
-dts <- ts(d, deltat=1/24)
+dts <- ts(d, deltat=1/24, start=dat[,x[1]])
 
 par(mfrow=c(2,1)) # prepare to visualize
 dat[,plot(x, y, type='l')] # full time series
@@ -432,7 +432,7 @@ plot(residuals(aa_seasDummy_1window), main="residuals from model fit to first 28
 fill_na <- function(x){
 	xvec <- seq_along(x)
 	navec <- is.na(x)
-	filled_x <- approx(xvec[!navec], y=x[!navec], xout=xvec)$y
+	filled_x <- approx(xvec[!navec], y=x[!navec], xout=xvec, rule=2)$y
 	if(is.ts(x)){
 		filled_x <- ts(filled_x, freq=frequency(x))
 	}
@@ -820,6 +820,61 @@ detrendR(dts, 10, 6, 4)
 # Rprof()
 # summaryRprof(tmp, memory="both")
 
+
+#' #ACF Map
+#+ acf-map-functions
+acf_cor <- function(x, ...){
+	acf(x, ..., na.action=na.pass, plot=FALSE)$acf
+}
+acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...){
+	
+	if(by > 1){
+		mat <- sub_embed(x, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
+	}else{
+		mat <- stats::embed(x, width)
+	}
+	
+	if(DETREND){
+		detrend2 <- function(z){
+			z <- ts(z, frequency=frequency(x))
+			as.numeric(detrendR(z, max_poly=4, max_fourier=6, max_interaction=3))
+		}
+		mat <- t(apply(X=mat, MARGIN=1, FUN=detrend2))
+	}
+	
+	out <- apply(X=mat, MARGIN=1, FUN=acf_cor, lag.max=lag.max)
+	lag_lab <- 0:(nrow(out)-1)
+	if(is.ts(x)){
+		obs_lab <- seq(from=tsp(x)[1]+(width/tsp(x)[3]), by=by/tsp(x)[3], length.out=ncol(out))
+	}else{
+		obs_lab <- seq(from=width, by=by, length.out=ncol(out))
+	}
+	
+	dimnames(out) <- list(lag=lag_lab, obs=obs_lab)
+	out <- t(out)
+	attr(out, "xlab") <- obs_lab
+	attr(out, "ylab") <- lag_lab
+	
+	return(out)
+	
+}
+acf_map <- function(out, ...){
+	obs_lab <- attr(out, "xlab")
+	lag_lab <- attr(out, "ylab")
+	rwbCols <- colorRampPalette(c("blue","white","red"))(23) 
+	fields::image.plot(x=obs_lab, y=lag_lab[-1], z=out[,2:ncol(out)], col=rwbCols, ...)
+	# axis(side=2, at=pretty(rev(lag_lab)), labels=pretty(lag_lab))
+	# image(x=obs_lab, y=lag_lab, z=t(out), col=rwbCols)
+	invisible(NULL)
+}
+
+#+ acf-map-testRun-noDetrending, fig.width=4, fig.height=4, fig.cap="**Figure** Autocorrelation at a bunch of time scales, using the ACF function. No detrending."
+out <- acf_roll(x=dts, width=win_days*24*60/5/agg_steps[2], by=4, DETREND=FALSE)
+acf_map(out, xlab="Day of year", ylab="Lag (hours)")
+
+#+ acf-map-testRun-Detrended, fig.width=4, fig.height=4, fig.cap="**Figure** Autocorrelation at a bunch of time scales, using the ACF function. No detrending."
+out2 <- acf_roll(x=dts, width=win_days*24*60/5/agg_steps[2], by=4, DETREND=TRUE)
+acf_map(out2, xlab="Day of year", ylab="Lag (hours)")
 
 #'   
 #' \FloatBarrier  
