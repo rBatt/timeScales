@@ -8,6 +8,7 @@
 #' @param phase integer, start subsampling sequency on the nth element of \code{x}
 #' 
 #' @return matrix
+#' @export
 sub_embed <- function(x, width=1, n=1, phase=1){
 	emat <- stats::embed(x, dimension=width)
 	row_vec <- seq_len(nrow(emat))
