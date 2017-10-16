@@ -426,18 +426,6 @@ plot(residuals(aa_seasDummy_1window), main="residuals from model fit to first 28
 
 
 #' ##Achieving Stationarity: Fourier Series & `auto.arima()`
-#' First, a handy function to fill-in NA's  
-#'   
-#+ fill-na-function
-fill_na <- function(x){
-	xvec <- seq_along(x)
-	navec <- is.na(x)
-	filled_x <- approx(xvec[!navec], y=x[!navec], xout=xvec, rule=2)$y
-	if(is.ts(x)){
-		filled_x <- ts(filled_x, freq=frequency(x))
-	}
-	return(filled_x)
-}
 #' ###Closer Inspection, & Approaches That don't Work
 #'   
 #'   
@@ -514,20 +502,6 @@ dts_quad <- fill_na(ts(d[540:1211], freq=24)) # 28 days with a peak in the middl
 plot(stl(dts_quad, s.window="per"))
 #' This chunk of data is a good example of a potential challenge. It has a big hump in the middle. So I'd suspect a 2nd order polynomial. Of course, I also need to take care of the daily cycle.  
 #'   
-
-#+ trend-xreg-function
-# This function creates dummy variables for polynomials ... to be used in regression
-trend_xreg <- function(exp.order, y){
-	x <- seq_along(y)
-	hnames <- paste0("trend",1:exp.order)
-	
-	raise_order <- function(o){
-		matrix(x^o, ncol=1)
-	}
-	omat <- sapply(1:exp.order, raise_order)
-	dimnames(omat) <- list(NULL, hnames)
-	return(scale(omat))
-}
 
 
 #+ select-sar-poly-function
@@ -742,122 +716,9 @@ Sys.time()
 
 plot_roll_pieces(rollAC_12_64)
 
-#' #Detrender
-#+ seriousDetrending
-detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3){
-	
-	full_poly <- trend_xreg(max_poly, x)
-	full_fourier <- forecast::fourier(x, max_fourier)
-	
-	get_interaction <- function(p, f){
-		int_list <- structure(vector("list", ncol(p)), .Names=colnames(p))
-		for(pp in 1:ncol(p)){
-			PP <- p[,pp] #pick this trend
-			pfmat <- matrix(NA, ncol=ncol(f), nrow=nrow(f))
-			for(ff in 1:ncol(f)){	
-				pfmat[,ff] <- f[,ff]*PP
-			}
-			colnames(pfmat) <- colnames(f)
-			int_list[[pp]] <- pfmat
-		}
-		return(int_list)
-	}
-	full_interaction_list <- get_interaction(p=full_poly, f=full_fourier)
-	
-	get_mm <- function(p, f, i){
-		pmm <- full_poly[,1:p, drop=FALSE]
-		get_fmm <- function(x, f){
-			x[,1:min(2*f, ncol(x))]
-		}
-		fmm <- get_fmm(full_fourier, f)
-		
-		if(i == 0){
-			mm <- cbind(intercept=1, pmm, fmm)
-		}else{
-			imm_list <- lapply(full_interaction_list[1:i], get_fmm, f=f)
-			for(l in 1:length(imm_list)){
-				dimnames(imm_list[[l]])[[2]] <- paste(dimnames(imm_list[[l]])[[2]], names(imm_list)[l], sep='-')
-			}
-			imm <- do.call(cbind, imm_list)
-		
-			mm <- cbind(intercept=1, pmm, fmm, imm)
-		}
-		return(mm)
-	}
-	
-	pfi_combos0 <- expand.grid(p=1:max_poly, f=1:max_fourier, i=0:max_interaction)
-	limit_interactionOrder <- pfi_combos0[,3] <= pfi_combos0[,1] #& pfi_combos0[,3] <= pfi_combos0[,2]
-	pfi_combos <- pfi_combos0[limit_interactionOrder,]
-	
-	
-	mod_aicc <- function(m){
-		X <- do.call(get_mm, as.list(pfi_combos[m,]))
-		tX <- t(X)
-		K <- ncol(X)
-		bhat <- solve(tX%*%X)%*%tX%*%Y
-		Yhat <- X%*%bhat
-		resid <- Y - Yhat
-		s2 <- sd(resid)
-		NLL <- -sum(dnorm(resid, mean=0, sd=s2, log=TRUE))
-		correction <- (2*K*(K+1))/(nrow(X) - K - 1)
-		AICc <- 2*K + 2*NLL + correction
-		return(AICc)
-	}
-	Y <- fill_na(as.numeric(x)) # use notation that's easier to recognize in the following
-	AICcs <- sapply(1:nrow(pfi_combos), mod_aicc)
-	# for(m in 1:nrow(pfi_combos)){
-# 		mod_aicc(m)
-# 	}
-	X <- do.call(get_mm, as.list(pfi_combos[which.min(AICcs),]))
-	resid <- c(Y - X%*%(solve(t(X)%*%X)%*%t(X)%*%Y))
-	resid <- ts(resid, freq=frequency(x))
-	return(resid)
-}
-detrendR(dts, 10, 6, 4)
-
-# Rprof(tmp <- tempfile(), memory.profiling=TRUE)
-# detrendR(dts_quad)
-# Rprof()
-# summaryRprof(tmp, memory="both")
-
 
 #' #ACF Map
 #+ acf-map-functions
-acf_cor <- function(x, ...){
-	acf(x, ..., na.action=na.pass, plot=FALSE)$acf
-}
-acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...){
-	
-	if(by > 1){
-		mat <- sub_embed(x, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
-	}else{
-		mat <- stats::embed(x, width)
-	}
-	
-	if(DETREND){
-		detrend2 <- function(z){
-			z <- ts(z, frequency=frequency(x))
-			as.numeric(detrendR(z, max_poly=4, max_fourier=6, max_interaction=3))
-		}
-		mat <- t(apply(X=mat, MARGIN=1, FUN=detrend2))
-	}
-	
-	out <- apply(X=mat, MARGIN=1, FUN=acf_cor, lag.max=lag.max)
-	lag_lab <- 0:(nrow(out)-1)
-	if(is.ts(x)){
-		obs_lab <- seq(from=tsp(x)[1]+(width/tsp(x)[3]), by=by/tsp(x)[3], length.out=ncol(out))
-	}else{
-		obs_lab <- seq(from=width, by=by, length.out=ncol(out))
-	}
-	
-	dimnames(out) <- list(lag=lag_lab, obs=obs_lab)
-	out <- t(out)
-	attr(out, "xlab") <- obs_lab
-	attr(out, "ylab") <- lag_lab
-	
-	return(out)
-	
-}
 acf_map <- function(out, ...){
 	obs_lab <- attr(out, "xlab")
 	lag_lab <- attr(out, "ylab")
