@@ -26,7 +26,7 @@ detrend <- function(x, time=1:length(x)){
 #' @seealso \code{\link{detrend}}\code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} \code{\link{fill_na}}
 #' @export
 detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType=c("resid","modelMatrix")){
-	
+	returnType <- match.arg(returnType)
 	# check if interaction argument makes sense given poly and fourier orders
 	if((max_poly==0 | max_fourier==0) & max_interaction!=0){
 		warning("max_interaction > 0, but either max_poly or max_fourier == 0. Cannot have interaction w/o both polynomial trend and Fourier series. Proceeding with max_interaction set to 0.")
