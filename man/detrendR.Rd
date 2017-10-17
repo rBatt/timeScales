@@ -4,7 +4,8 @@
 \alias{detrendR}
 \title{DetrendR}
 \usage{
-detrendR(x, max_poly = 6, max_fourier = 6, max_interaction = 3)
+detrendR(x, max_poly = 6, max_fourier = 6, max_interaction = 3,
+  returnType = c("resid", "modelMatrix"))
 }
 \arguments{
 \item{x}{time series to be detrended}
@@ -14,6 +15,8 @@ detrendR(x, max_poly = 6, max_fourier = 6, max_interaction = 3)
 \item{max_fourier}{integer indicating the order of the Fourier series}
 
 \item{max_interaction}{integer indicating the polynomial order that Fourier series should interact with (see \code{\link{interaction_xreg}})}
+
+\item{returnType}{character indicating the type of output desired. "resid" returns the residuals of the series (the detrended time series), whereas "modelMatrix" returns the matrix of predictor variables. Both outputs are of the AICc-selected model.}
 }
 \value{
 detrended time series

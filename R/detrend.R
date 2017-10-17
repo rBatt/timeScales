@@ -18,13 +18,14 @@ detrend <- function(x, time=1:length(x)){
 #' @param max_poly integer indicating the order of the polynomial trend
 #' @param max_fourier integer indicating the order of the Fourier series
 #' @param max_interaction integer indicating the polynomial order that Fourier series should interact with (see \code{\link{interaction_xreg}})
+#' @param returnType character indicating the type of output desired. "resid" returns the residuals of the series (the detrended time series), whereas "modelMatrix" returns the matrix of predictor variables. Both outputs are of the AICc-selected model.
 #' 
 #' @details model to be used for detrending is fit via OLS, the best model is selected by AICc. See \code{\link{interaction_xreg}} for the construction of the interaction matrix. Not all model combinations are considered just all combinations of the orders of polynomial and Fourier series and interactions of the Fourier series with main-effect polynomials; the order of the interaction will never be greater than either of the orders of the polynomial or Fourier. Missing values (NA's) are first linearly interpolated.
 #' 
 #' @return detrended time series
 #' @seealso \code{\link{detrend}}\code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} \code{\link{fill_na}}
 #' @export
-detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3){
+detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType=c("resid","modelMatrix")){
 	
 	# check if interaction argument makes sense given poly and fourier orders
 	if((max_poly==0 | max_fourier==0) & max_interaction!=0){
@@ -104,9 +105,14 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3){
 	Y <- fill_na(as.numeric(x)) # use notation that's easier to recognize in the following
 	AICcs <- sapply(1:nrow(pfi_combos), mod_aicc)
 	
-	# for best model (selected by AICc), re-fit model and get residuals
+	# for best model (selected by AICc), re-fit model and get model matrix/ residuals
 	X <- do.call(get_mm, as.list(pfi_combos[which.min(AICcs),]))
-	resid <- c(Y - X%*%(solve(t(X)%*%X)%*%t(X)%*%Y))
-	resid <- stats::ts(resid, freq=stats::frequency(x))
-	return(resid)
+	if(returnType=="modelMatrix"){
+		return(X)
+	}else if(returnType=="resid"){
+		resid <- c(Y - X%*%(solve(t(X)%*%X)%*%t(X)%*%Y))
+		resid <- stats::ts(resid, freq=stats::frequency(x))
+		return(resid)
+	}
+	
 }
