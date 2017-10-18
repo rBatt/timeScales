@@ -33,6 +33,8 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 		max_interaction <- 0
 	}
 	
+	stopifnot(max_poly >= 1)
+	
 	# polynomial matrix
 	full_poly <- trend_xreg(max_poly, x)
 	
@@ -84,7 +86,7 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	}
 	
 	# combinations of model parameters in terms of orders of poly, fourier, and interaction
-	pfi_combos0 <- expand.grid(p=1:max_poly, f=1:max_fourier, i=0:max_interaction)
+	pfi_combos0 <- expand.grid(p=1:max_poly, f=0:max_fourier, i=0:max_interaction)
 	limit_interactionOrder <- pfi_combos0[,3] <= pfi_combos0[,1] #& pfi_combos0[,3] <= pfi_combos0[,2]
 	pfi_combos <- pfi_combos0[limit_interactionOrder,]
 	
