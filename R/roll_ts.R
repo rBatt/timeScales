@@ -7,6 +7,7 @@
 #' @param by integer indicating the number of samples by which to increment the window forward between windowed subsamples
 #' @param FUN function to be applied to each window
 #' @param x optional vector by which the observations in y are ordered (such as date-times)
+#' @param DETREND logical, detrend or no? see \code{\link{detrendR}}
 #' @param ... additional arguments to be passed to \code{FUN}
 #' 
 #' The function performs a backward-looking rolling window on a numeric vector. Makes use of the \code{\link{embed}} function, which might be slow for long windows (many observations per window). Internally also makes use of \code{\link{sub_embed}}.
@@ -34,14 +35,31 @@
 #' par(mfrow=c(2,1))
 #' plot(xa, ya)
 #' dta[,plot(x,y)]
-roll_ts <- function(y, width=288, by=1, FUN=mean, x, ...){
+roll_ts <- function(y, width=288, by=1, FUN=mean, x, DETREND=FALSE, ...){
 	buff <- rep(NA, width-1)
 	if(by > 1){
 		mat <- sub_embed(y, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
 	}else{
 		mat <- stats::embed(y, width)
 	}
-	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN, ...))
+	
+	# do detrending
+	# write a function that will first detrend, then apply the function FUN
+	# because detrending might require information about the frequency of the time series y, add that info to the subset z
+	if(DETREND){
+		stopifnot(is.ts(y))
+		FUN2 <- function(z, ...){ # z is the subset (window) from sub_embed() or embed()
+			z <- ts(z, freq=frequency(y))
+			mp <- 6 # max order of the polynomial; 6 should cover most cases pretty easily
+			mf <- floor(min(frequency(y)/2, 6)) # default is fourier order of 6, but this might be too high if the frequency of the time series is high b/c the fourier order has to be limited to 1/2 of the frequency.
+			z <- detrendR(z, max_poly=mp, max_fourier=mf, max_interaction=3) # detrending
+			FUN(z, ...) # then apply FUN to the detrended series
+		}
+	}else{
+		FUN2 <- FUN
+	}
+	
+	agg <- c(buff, apply(X=mat, MARGIN=1, FUN=FUN2, ...))
 	if(!missing(x)){
 		if(by > 1){
 			mat2 <- sub_embed(x, width=width, n=by)

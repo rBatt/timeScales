@@ -4,7 +4,7 @@
 \alias{roll_ts}
 \title{Roll TS}
 \usage{
-roll_ts(y, width = 288, by = 1, FUN = mean, x, ...)
+roll_ts(y, width = 288, by = 1, FUN = mean, x, DETREND = FALSE, ...)
 }
 \arguments{
 \item{y}{numeric vector representing time series}
@@ -16,6 +16,8 @@ roll_ts(y, width = 288, by = 1, FUN = mean, x, ...)
 \item{FUN}{function to be applied to each window}
 
 \item{x}{optional vector by which the observations in y are ordered (such as date-times)}
+
+\item{DETREND}{logical, detrend or no? see \code{\link{detrendR}}}
 
 \item{...}{additional arguments to be passed to \code{FUN}
 
