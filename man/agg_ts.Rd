@@ -9,7 +9,7 @@ agg_ts(x, y, width = 288, na.rm = TRUE, FUN = mean)
 \arguments{
 \item{x}{time index vector}
 
-\item{y}{value vector (numeric)}
+\item{y}{value vector (numeric, or a \code{\link{ts}} object)}
 
 \item{width}{integer indicating number of observations to aggregate at a time}
 
@@ -18,7 +18,7 @@ agg_ts(x, y, width = 288, na.rm = TRUE, FUN = mean)
 \item{FUN}{aggregation function}
 }
 \value{
-data.table with 3 columns: x, y, and N. N is number of observation per aggregated value (number of observations for input to \code{FUN})
+data.table with 3 columns: x, y, and N. N is number of observation per aggregated value (number of observations for input to \code{FUN}). If the input y was a time series, so will the output
 }
 \description{
 Aggregate Time Series
