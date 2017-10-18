@@ -11,13 +11,14 @@
 #' @param lakes a character, possibly vector, indicating which lakes in "lake" column of \code{X} should be analyzed.
 #' @param subWindow logical, should the number of rolling windows by subset (uses the \code{by} and \code{n} arguments)
 #' @param subStat logical, should the statistic be calculated for a subset of the windowed data?
+#' @param DETREND logical, detrend or no? Pass to \code{\link{roll_ts}}. Also see \code{\link{detrendR}}.
 #' 
 #' @details I need to fill this in. One thing to remember is that 28-day nominal window size is hard-coded into this function right now.
 #' 
 #' @return list or list of data.tables containing rolling window statistic
 #' @import data.table
 #' @export
-roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE){
+roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE, DETREND=FALSE){
 	# check vars, set if missing
 	if(missing(vars)){
 		vars <- X[[1]][,unique(variable)]
@@ -65,7 +66,7 @@ roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subW
 	
 	# helper function to apply rolling statistic
 	roll_ac <- function(X2, nsteps, by, n){
-		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase)}, by=c("lake","variable")]
+		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase, DETREND=DETREND)}, by=c("lake","variable")]
 	}
 	out <- mapply(roll_ac, X, window_elapsed, by, n, SIMPLIFY=FALSE)
 	out
