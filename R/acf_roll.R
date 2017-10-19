@@ -34,7 +34,7 @@ acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...
 	if(DETREND){
 		detrend2 <- function(z){
 			z <- stats::ts(z, frequency=stats::frequency(x))
-			as.numeric(detrendR(z, max_poly=4, max_fourier=6, max_interaction=3))
+			as.numeric(detrendR(z, max_poly=6, max_fourier=6, max_interaction=3))
 		}
 		mat <- t(apply(X=mat, MARGIN=1, FUN=detrend2))
 	}
