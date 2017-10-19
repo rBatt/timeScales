@@ -22,6 +22,7 @@ acf_cor <- function(x, ...){
 #' @param ... unused
 #' 
 #' @seealso \code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} 
+#' @export
 acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...){
 	
 	if(by > 1){

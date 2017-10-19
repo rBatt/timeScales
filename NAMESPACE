@@ -2,6 +2,7 @@
 
 export(ac1)
 export(ac_sub)
+export(acf_roll)
 export(agg_ts)
 export(detrend)
 export(detrendR)
