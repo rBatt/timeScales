@@ -4,10 +4,12 @@
 \alias{interval_name}
 \title{Interval Name}
 \usage{
-interval_name(x)
+interval_name(x, minPerSample = 5)
 }
 \arguments{
 \item{x}{integer, the number of time steps}
+
+\item{minPerSample}{time elapsed between samples, in minutes}
 }
 \description{
 Converts a time interval (integer number of observations) into words, assuming 5 minute data
