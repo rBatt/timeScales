@@ -130,6 +130,11 @@ names(sos_agg) <- paste0("agg", agg_steps)
 
 
 #'  #Chlorophyll Time Series for each Lake
+#' Paul Lake is an unmanipulated, reference lake. Peter was being fertilized with nitrogen and phosphorphus every day. The goal was to create a critical transition in Peter Lake (Hopf birfurcation).  
+#'   
+#' Around day 180, Peter Lake has a blue-green algal bloom. Maximum BGA in Peter is ~4x's higher than maximum BGA in Paul Lake.  
+#'   
+#' ##Figure: Time Series
 #+ chla-timeSeries-figure, fig.width=3.5, fig.height=5, fig.cap="**Figure.** High frequency chlorophyll (chla, micrograms per liter) time series in Peter (red) and Paul (blue) lakes in 2015.", results='hide'
 par(mfcol=c(2,1), mar=c(2, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
 sos[lake=="Paul", plot(doy, chla, xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
@@ -137,10 +142,6 @@ mtext("Paul Lake (Reference)", side=3, line=-0.1, adj=0.05, font=2)
 sos[lake=="Peter", plot(doy, chla, xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
 mtext("Peter Lake (Manipulated)", side=3, line=-0.1, adj=0.05, font=2)
 #'   
-#'   
-#' Paul Lake is an unmanipulated, reference lake. Peter was being fertilized with nitrogen and phosphorphus every day. The goal was to create a critical transition in Peter Lake (Hopf birfurcation).  
-#'   
-#' Around day 180, Peter Lake has a blue-green algal bloom. Maximum BGA in Peter is ~4x's higher than maximum BGA in Paul Lake.
 #'   
 #' \FloatBarrier  
 #'   
@@ -167,8 +168,7 @@ plot_acf(ylab="Paul Lake Chlorophyll ACF", main="")
 plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
 #' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
 
-#' #Changes in Autocorrelation Over Time and Across Time Scales
-#' ##Rolling Window Autocorrelation for Select Time Scales
+#' #Rolling Window Autocorrelation for Select Time Scales
 #+ rollingWindowAC-calculation
 steps_per_day <- 60*24/(5 * agg_steps) # observations per day = (60 minutes / 1 hour) * (24 hours / 1 day) * (1 observation / 5*n min)
 steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
@@ -221,6 +221,178 @@ xlabs[length(agg_steps)] <- "Day of Year"
 
 par(mfrow=c(length(agg_steps),2), mar=c(2,2,0.5,0.5), cex=1, tcl=-0.15, mgp=c(1,0.2,0), ps=8)
 invisible(mapply(plotac, X=AC_list, ylab=ylabs, xlab=xlabs))
+
+#' #ACF Heat Map
+#' ##Functions
+#+ acf-map-functions
+acf_map <- function(out, ...){
+	obs_lab <- attr(out, "xlab")
+	lag_lab <- attr(out, "ylab")
+	rwbCols <- colorRampPalette(c("blue","white","red"))(256) 
+	# fields::image.plot(x=obs_lab, y=lag_lab[-1], z=out[,2:ncol(out)], col=rwbCols, ...)
+	image(x=obs_lab, y=lag_lab[-1], z=out[,2:ncol(out)], col=rwbCols, ...)
+	# axis(side=2, at=pretty(rev(lag_lab)), labels=pretty(lag_lab))
+	# image(x=obs_lab, y=lag_lab, z=t(out), col=rwbCols)
+	invisible(NULL)
+}
+
+add_legend <- function(out, legend.mar=2, col, axis.args){
+	if(missing(col)){
+		col <- colorRampPalette(c("blue","white","red"))(256)
+	}
+	if(missing(axis.args)){
+		axis.args <- list(mgp=c(0.5, 0.15, 0), tcl=-0.1)
+	}
+	fields::image.plot(out, legend.only=TRUE, col=col, legend.mar=legend.mar, axis.args=axis.args)
+}
+
+add_axis <- function(out){
+	map_colors <- colorRampPalette(c("blue","white","red"))(256)
+	ylab_pretty <- pretty(attr(out, "ylab")/288)
+	ylab_pretty[1] <- 1/288 #attr(out_L_sub, "ylab")[3]/288
+	ylab_names <- sapply(ylab_pretty, interval_name, minPerSample=1440) #interval_name(attr(out_L_sub, "ylab"))
+	axis(side=2, at=ylab_pretty*288, labels=ylab_names)
+	invisible()
+}
+
+# thin_out <- function(out, rowInt, colInt){
+# 	xlab <- attr(out, "xlab")
+# 	ylab <- attr(out, "ylab")
+# 	nr <- nrow(out)
+# 	nc <- ncol(out)
+# 	rVec <- ((1:nr)%%rowInt)==0
+# 	cVec <- ((1:nc)%%colInt)==0
+# 	out2 <- out[rVec, cVec]
+# 	attr(out2, "xlab") <- xlab[rVec]
+# 	attr(out2, "ylab") <- ylab[cVec]
+# 	return(out2)
+# }
+
+sub_out <- function(out, ind=list(1,1), type=c("sub", "thin")){
+	type <- match.arg(type)
+	xlab <- attr(out, "xlab")
+	ylab <- attr(out, "ylab")
+	nr <- nrow(out)
+	nc <- ncol(out)
+	if(type=="thin"){
+		rVec <- ((1:nr)%%ind[[1]])==0
+		cVec <- ((1:nc)%%ind[[2]])==0
+	}
+	if(type=="sub"){
+		rVec <- ind[[1]]
+		cVec <- ind[[2]]
+	}
+	out2 <- out[rVec, cVec]
+	attr(out2, "xlab") <- xlab[rVec]
+	attr(out2, "ylab") <- ylab[cVec]
+	return(out2)
+}
+
+#' ##Calculate ACF Map
+#+ acf-map-calculate, cache=TRUE
+out_L <- acf_roll(x=sosm[lake=="Paul" & variable=="chla", value], width=steps_per_window[1], by=24, DETREND=TRUE)
+out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_per_window[1], by=24, DETREND=TRUE)
+
+#' ##Figure: Full ACF Heat Map
+#+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first."
+# ---- Thin-out for Fast/ Lighter Plotting ----
+out_L_sub <- sub_out(out_L, ind=list(r=8, c=4), type='thin')
+out_R_sub <- sub_out(out_R, ind=list(r=8, c=4), type='thin')
+out_Diff_sub <- out_R_sub - out_L_sub
+
+# ---- Begin Plotting ----
+xlimL <- c(min(attr(out_L_sub, "xlab")), 240)
+xlimR <- c(min(attr(out_R_sub, "xlab")), 240)
+
+par(mfrow=c(3,1))
+par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
+acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
+add_axis(out_L_sub)
+add_legend(out_L_sub)
+
+par(cex=1)
+acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
+add_axis(out_R_sub)
+add_legend(out_R_sub)
+
+par(cex=1)
+acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n')
+add_axis(out_Diff_sub)
+add_legend(out_Diff_sub)
+
+#' ##Figure: Subset ACF Heat Map
+#+ acf-map-subset-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Subset of full data set (zoom on high frequencies and early part of the time series)."
+# ---- Subset to Zoom in on Relevant Bits ----
+rInd <- attr(out_L, "xlab") <= 190
+cInd <- attr(out_L, "ylab") <= 144
+out_L_sub2 <- sub_out(out_L, ind=list(r=rInd, c=cInd), type='sub')
+out_R_sub2 <- sub_out(out_R, ind=list(r=rInd, c=cInd), type='sub')
+out_Diff_sub2 <- out_R_sub2 - out_L_sub2
+
+# ---- Begin Plotting ----
+par(mfrow=c(3,1))
+par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
+acf_map(out_L_sub2, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n', zlim=range(out_L_sub))
+add_axis(out_L_sub2)
+add_legend(out_L_sub2)
+
+par(cex=1)
+acf_map(out_R_sub2, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", yaxt='n', zlim=range(out_R_sub))
+add_axis(out_R_sub2)
+add_legend(out_R_sub2)
+
+par(cex=1)
+acf_map(out_Diff_sub2, xlab="Day of year", ylab="Time scale", main="Difference", yaxt='n', zlim=range(out_Diff_sub))
+add_axis(out_Diff_sub2)
+add_legend(out_Diff_sub2)
+
+
+#' ##Figure: Full ACF Heat Map w/ Time Series Insets
+#+ acf-map-full-tsInsets-figure, fig.width=6, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Time series in the insets represent subsets of the full heat map at specific time scales."
+# ---- Setup Layout Matrix ----
+ts_choices <- c(1, 12*3, 12*24)
+nScales <- length(ts_choices)
+widthFac <- 3 # how much wider the heat maps are relative to the time series
+tsPos <- seq(4, by=nScales, length.out=nScales)+rep(0:2, each=nScales)
+lay_mat <- matrix(c(tsPos, rep(rep((1:3),each=nScales),widthFac)), ncol=widthFac+1)
+
+# ---- Plot Heat Maps ----
+layout(lay_mat)
+par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
+acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
+add_axis(out_L_sub)
+# add_legend(out_L_sub)
+
+par(cex=1)
+acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
+add_axis(out_R_sub)
+# add_legend(out_R_sub)
+
+par(cex=1)
+acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n', xpd=TRUE)
+add_axis(out_Diff_sub)
+# add_legend(out_Diff_sub)
+
+# ---- Plot Time Series ----
+# Determine Indices for Time Scales
+
+ts2_ind <- list(r=1:nrow(out_L), c=ts_choices[2]+1)
+ts3_ind <- list(r=1:nrow(out_L), c=ts_choices[3]+1)
+xval <- attr(out_L, "xlab")
+
+# First Time Scale
+suppressWarnings({par(mar=c(0.75,0.75,0.1,0.1), mgp=c(1,-0.1,0), tcl=0.15)})
+for(s in nScales:1){
+	ts_ind <- list(r=1:nrow(out_L), c=ts_choices[s]+1)
+	for(i in 1:3){
+		tout <- switch(i, out_L, out_R, (out_R-out_L))
+		ts_temp <- c(sub_out(tout, ind=ts_ind, type="sub"))
+		plot(xval, ts_temp, xlab="", ylab="", type='l', xaxt='n')
+		axis(side=1, labels=F)
+		mtext(interval_name(ts_choices[s]), side=3, adj=0.98, font=2, line=-0.75)
+	}
+}
+
 
 
 
