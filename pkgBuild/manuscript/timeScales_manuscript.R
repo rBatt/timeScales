@@ -168,26 +168,6 @@ plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
 #' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
 
 #' #Changes in Autocorrelation Over Time and Across Time Scales
-
-
-# sos_agg[[4]][lake=="Peter",plot(y)]
-
-
-# confused here about what I should do --- do I bake this into roll_ac.sos? Seems kinda like a pain, but might be easiest. Have to account for lake, variable, time scale combos, and also ensure that the object is a ts when passed to AC function so it can be properly detrended. What a pain.
-#
-# function(X, freq)
-#
-# X[variable%in%vars & lake%in%lakes, j={
-# 	roll_ts(y=ts())
-# }, by=c("lake", "variable")]
-#
-# test <- roll_ts(y=tsVec2, width=24*10, FUN=ac1_detrended, x=seq_along(tsVec2), freq=24, by=12, preDetrend=FALSE)
-#
-#
-# sos_agg_ac_fT <- roll_ac.sos(X=sos_agg, window_elapsed=win_days*24*60/5/agg_steps, vars=vars, lakes=lakes)
-#
-#
-
 #' ##Rolling Window Autocorrelation for Select Time Scales
 #+ rollingWindowAC-calculation
 steps_per_day <- 60*24/(5 * agg_steps) # observations per day = (60 minutes / 1 hour) * (24 hours / 1 day) * (1 observation / 5*n min)
