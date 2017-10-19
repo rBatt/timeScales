@@ -189,9 +189,12 @@ plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
 #
 
 #' ##Rolling Window Autocorrelation for Select Time Scales
+#+ rollingWindowAC-calculation
 steps_per_day <- 60*24/(5 * agg_steps) # observations per day = (60 minutes / 1 hour) * (24 hours / 1 day) * (1 observation / 5*n min)
 steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
 AC_list <- roll_ac.sos(sos_agg, window_elapsed=steps_per_window, vars=vars, lakes=lakes, DETREND=TRUE, by=c(24, 2, 1, 1))
+
+#+ rollingWindowAC-PaulPeterDifference, fig.width=6, fig.height=6, fig.cap="**Figure.** Rolling windows of first-order autocorrelation from detrended chlorophyll time series. Blue lines are from Paul Lake (reference), red lines are Peter Lake (manipulated). In the second column, the black lines represent the difference (Peter - Paul) between the lines in the first column (positive values indicate that autocorrelation was higher in Peter than in Paul). Each row of the figure has a different sampling frequency."
 plotac <- function(X, ...){
 	X <- copy(X)
 	ylim <- X[,range(y, na.rm=TRUE)]
@@ -200,22 +203,44 @@ plotac <- function(X, ...){
 	zdiff <- data.table(lake="zdiff", variable=X[,variable[1]], x=X[lake==lake[1], x], y=ydiff)
 	X <- rbind(X, zdiff)
 	
-	dud <- X[,j={
-		tcol <- c("Paul"="blue","Peter"="red", "zdiff"="black")[lake[1]]
-		if(lake[1]=="Paul"){
-			plot(x,y, type='l', col=tcol, ylim=ylim, ...)
-		}else if(lake=="Peter"){
-			lines(x, y, col=tcol)
-		} else if(lake=="zdiff"){
-			plot(x,y, type='l', col=tcol, ...)
-		}
+	ul <- X[,unique(lake)]
+	for(l in 1:length(ul)){
+		# tX <- X[lake==ul[l]]
+# 		tcol <- c("Paul"="blue","Peter"="red", "zdiff"="black")[ul[l]]
+# 		if(ul[l]=="Paul"){
+# 			plot(tX[,x],tX[,y], type='l', col=tcol, ylim=ylim, ...)
+# 		}else if(ul[l]=="Peter"){
+# 			lines(tX[,x],tX[,y], col=tcol)
+# 		} else if(ul[l]=="zdiff"){
+# 			plot(tX[,x],tX[,y], type='l', col=tcol, ...)
+# 		}
 		
-		NULL
-	},by=c("lake")]
+		dud <- X[lake==ul[l],j={
+			tcol <- c("Paul"="blue","Peter"="red", "zdiff"="black")[lake[1]]
+			if(lake[1]=="Paul"){
+				plot(x,y, type='l', col=tcol, ylim=ylim, ...)
+			}else if(lake[1]=="Peter"){
+				lines(x, y, col=tcol)
+			} else if(lake[1]=="zdiff"){
+				p2 <- function(..., ylab, ylab2="") plot(..., ylab=ylab2)
+				p2(x,y, type='l', col=tcol, ...)
+				# abline(h=0, lty="dashed")
+			}
+		
+			NULL
+		}]
+	}
+	
 	invisible()
 }
-par(mfrow=c(length(agg_steps),2), mar=c(2,2,0.5,0.5), cex=1, tcl=-0.15, mgp=c(1,0.2,0))
-dud <- lapply(AC_list, plotac)
+
+ylabs <- paste0("Chl-a AR(1) (", sapply(agg_steps, interval_name), ")")
+
+xlabs <- rep("", length(agg_steps))
+xlabs[length(agg_steps)] <- "Day of Year"
+
+par(mfrow=c(length(agg_steps),2), mar=c(2,2,0.5,0.5), cex=1, tcl=-0.15, mgp=c(1,0.2,0), ps=8)
+invisible(mapply(plotac, X=AC_list, ylab=ylabs, xlab=xlabs))
 
 
 
