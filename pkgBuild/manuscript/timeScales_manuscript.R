@@ -299,31 +299,31 @@ out_L <- acf_roll(x=sosm[lake=="Paul" & variable=="chla", value], width=steps_pe
 out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
 
 #' ##Figure: Full ACF Heat Map
-#+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first."
-# ---- Thin-out for Fast/ Lighter Plotting ----
-out_L_sub <- sub_out(out_L, ind=list(r=8, c=4), type='thin')
-out_R_sub <- sub_out(out_R, ind=list(r=8, c=4), type='thin')
-out_Diff_sub <- out_R_sub - out_L_sub
-
-# ---- Begin Plotting ----
-xlimL <- c(min(attr(out_L_sub, "xlab")), 240)
-xlimR <- c(min(attr(out_R_sub, "xlab")), 240)
-
-par(mfrow=c(3,1))
-par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
-acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
-add_axis(out_L_sub)
-add_legend(out_L_sub)
-
-par(cex=1)
-acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
-add_axis(out_R_sub)
-add_legend(out_R_sub)
-
-par(cex=1)
-acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n')
-add_axis(out_Diff_sub)
-add_legend(out_Diff_sub)
+#+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first.", fig.show='hide', include=FALSE
+# # ---- Thin-out for Fast/ Lighter Plotting ----
+# out_L_sub <- sub_out(out_L, ind=list(r=8, c=4), type='thin')
+# out_R_sub <- sub_out(out_R, ind=list(r=8, c=4), type='thin')
+# out_Diff_sub <- out_R_sub - out_L_sub
+#
+# # ---- Begin Plotting ----
+# xlimL <- c(min(attr(out_L_sub, "xlab")), 240)
+# xlimR <- c(min(attr(out_R_sub, "xlab")), 240)
+#
+# par(mfrow=c(3,1))
+# par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
+# acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
+# add_axis(out_L_sub)
+# add_legend(out_L_sub)
+#
+# par(cex=1)
+# acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
+# add_axis(out_R_sub)
+# add_legend(out_R_sub)
+#
+# par(cex=1)
+# acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n')
+# add_axis(out_Diff_sub)
+# add_legend(out_Diff_sub)
 
 #' ##Figure: Subset ACF Heat Map
 #+ acf-map-subset-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Subset of full data set (zoom on high frequencies and early part of the time series)."
@@ -356,7 +356,7 @@ add_legend(out_Diff_sub2)
 #+ acf-map-full-tsInsets-figure, fig.width=6, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Time series in the insets represent subsets of the full heat map at specific time scales."
 #      Setup Layout Matrix ----
 nMain <- 3 # the number of heat map panels
-ts_choices <- c(1, 12*3, 12*6, 12*24)
+ts_choices <- c(1, 12*6, 12*24, 12*48)
 nScales <- length(ts_choices)
 widthFac <- 3 # how much wider the heat maps are relative to the time series
 pExpand <- 6 # number of times (*) to expand each time series panel
@@ -415,7 +415,7 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 		mtext(interval_name(ts_choices[s]), side=3, adj=0.98, font=2, line=-0.75)
 		revS <- (nScales:1)[s]
 		panelLab <- LETTERS[(i-1)*nMain+revS+i] # I appologize to my future self if he needs to understand this. Remember that the plots are created in a very jumbled way due to 1) the layout(), and 2) I go nScales:1 not 1:nScales, and 3) the s loop is outside the i loop [this point interacts with #1, such that I think they cancel each other]. Also, I had to fiddle a bit so I'm not even sure I understand the pattern, so don't be confused by those two points, especially the first, it might not be relevant. The +i at the end is just b/c I want the heat maps to be labeled A, E, and I, such that all the Paul Lake panels can be summarized as A-D, all the Peter Lake panels as E-H, and all the 'difference' panels as I-L.
-		mtext(panelLab, side=3, adj=0.04, font=2, line=if(panelLab=='B'){-1.0}else{-0.75}, cex=1)
+		mtext(panelLab, side=3, adj=0.04, font=2, line=if(panelLab=='B'){-0.75}else{-0.75}, cex=1)
 		# mtext(paste(panelLab, interval_name(ts_choices[s]), sep=", "), side=3, adj=0.99, font=2, line=-0.67)
 		# A
 	}
