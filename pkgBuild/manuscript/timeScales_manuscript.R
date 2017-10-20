@@ -90,26 +90,26 @@ vars <- "chla" # can be vector; variables to analyze (wtr, bga, chla)
 #' #Data Prep
 #' ##Subset, Restructure, Define as ts Object
 #+ data-prep-basic
-# ---- drop tuesday lake ----
+#      drop tuesday lake ----
 sos <- sos_data[Lake!="Tuesday"]
 
-# ---- shorter names ----
+#      shorter names ----
 setnames(sos, 
 	old=c("Year", "Lake", "DoY", "DateTime", "Temp_HYLB", "Chla_Conc_HYLB", "BGA_Conc_HYLB"),
 	new=c("year","lake","doy","datetime","wtr","chla","bga")
 )
 
-# ---- ensure numeric, re-structure data set ----
+#      ensure numeric, re-structure data set ----
 sos[,bga:=as.numeric(bga)]
 sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))[variable%in%vars & lake%in%lakes]
 
-# ---- make measured values of class "ts" with frequency = 288 samples per day ----
+# make measured values of class "ts" with frequency = 288 samples per day ----
 set_ts <- function(y, x, freq=288){
 	ts(y, freq=288, start=x)
 }
-sosm[, value:=set_ts(y=value, x=doy[1]), by=c("year","lake","variable")]
+sosm[, value:=set_ts(y=log(value), x=doy[1]), by=c("year","lake","variable")]
 
-# ---- grab range limits (primarily for plotting) ----
+#      grab range limits (primarily for plotting) ----
 doy_range <- sos[,range(doy, na.rm=TRUE)]
 chla_range <- sos[,range(chla, na.rm=TRUE)]
 # bga_range <- sos[,range(bga, na.rm=TRUE)]
@@ -167,7 +167,8 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 par(mfrow=c(2,1), mar=c(2, 2.0, 0.25, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
 plot_acf(ylab="Paul Lake Chlorophyll ACF", main="")
 plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
-#' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
+#' Autocorrelation is time scale dependent in both the manipulated and the reference lake.  
+#'   
 
 #' #Rolling Window Autocorrelation for Select Time Scales
 #+ rollingWindowAC-calculation, cache=TRUE
@@ -296,12 +297,12 @@ out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_p
 
 #' ##Figure: Full ACF Heat Map
 #+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first."
-# ---- Thin-out for Fast/ Lighter Plotting ----
+#      Thin-out for Fast/ Lighter Plotting ----
 out_L_sub <- sub_out(out_L, ind=list(r=8, c=4), type='thin')
 out_R_sub <- sub_out(out_R, ind=list(r=8, c=4), type='thin')
 out_Diff_sub <- out_R_sub - out_L_sub
 
-# ---- Begin Plotting ----
+#      Begin Plotting ----
 xlimL <- c(min(attr(out_L_sub, "xlab")), 240)
 xlimR <- c(min(attr(out_R_sub, "xlab")), 240)
 
@@ -323,14 +324,14 @@ add_legend(out_Diff_sub)
 
 #' ##Figure: Subset ACF Heat Map
 #+ acf-map-subset-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Subset of full data set (zoom on high frequencies and early part of the time series)."
-# ---- Subset to Zoom in on Relevant Bits ----
+#      Subset to Zoom in on Relevant Bits ----
 rInd <- attr(out_L, "xlab") <= 190
 cInd <- attr(out_L, "ylab") <= 144
 out_L_sub2 <- sub_out(out_L, ind=list(r=rInd, c=cInd), type='sub')
 out_R_sub2 <- sub_out(out_R, ind=list(r=rInd, c=cInd), type='sub')
 out_Diff_sub2 <- out_R_sub2 - out_L_sub2
 
-# ---- Begin Plotting ----
+#      Begin Plotting ----
 par(mfrow=c(3,1))
 par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
 acf_map(out_L_sub2, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n', zlim=range(out_L_sub))
@@ -357,7 +358,7 @@ widthFac <- 3 # how much wider the heat maps are relative to the time series
 tsPos <- seq(4, by=nScales, length.out=nScales)+rep(0:2, each=nScales)
 lay_mat <- matrix(c(tsPos, rep(rep((1:3),each=nScales),widthFac)), ncol=widthFac+1)
 
-# ---- Plot Heat Maps ----
+#      Plot Heat Maps ----
 layout(lay_mat)
 par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
 acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
