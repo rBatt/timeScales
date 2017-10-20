@@ -59,11 +59,12 @@ o_f <- paste(doc_type, "document", sep="_")
 
 Sys.setenv(PATH=paste0("/Library/TeX/texbin:",Sys.getenv("PATH")))
 opts_chunk$set(
-	fig.path = 'manuscript_report/', 
-	cache.path='manuscript_report/',
+	fig.path = 'timeScales_manuscript/', 
+	cache.path='timeScales_manuscript/',
 	echo=TRUE, 
 	include=TRUE, 
 	cache=F,
+	autodep=TRUE,
 	results='asis',
 	warning=FALSE,
 	fig.show="hold",
@@ -169,7 +170,7 @@ plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
 #' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
 
 #' #Rolling Window Autocorrelation for Select Time Scales
-#+ rollingWindowAC-calculation
+#+ rollingWindowAC-calculation, cache=TRUE
 steps_per_day <- 60*24/(5 * agg_steps) # observations per day = (60 minutes / 1 hour) * (24 hours / 1 day) * (1 observation / 5*n min)
 steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
 AC_list <- roll_ac.sos(sos_agg, window_elapsed=steps_per_window, vars=vars, lakes=lakes, DETREND=TRUE, by=c(24, 2, 1, 1))
