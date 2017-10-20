@@ -16,9 +16,9 @@ agg_ts <- function(x, y, width=288, na.rm=TRUE, FUN=mean){
 	frac <- width/tot
 	dt <- data.table(x=roundGrid(x, frac), y=y)
 	dto <- dt[,list(y=FUN(y, na.rm=na.rm), N=sum(!is.na(y))), by=x]
-	if(is.ts(y)){
-		frY <- frequency(y)/width
-		dto[,y:=ts(y, freq=frY, start=x[1])]
+	if(stats::is.ts(y)){
+		frY <- stats::frequency(y)/width
+		dto[,y:=stats::ts(y, freq=frY, start=x[1])]
 	}
 	return(dto)
 }

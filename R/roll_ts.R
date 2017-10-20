@@ -47,11 +47,11 @@ roll_ts <- function(y, width=288, by=1, FUN=mean, x, DETREND=FALSE, ...){
 	# write a function that will first detrend, then apply the function FUN
 	# because detrending might require information about the frequency of the time series y, add that info to the subset z
 	if(DETREND){
-		stopifnot(is.ts(y))
+		stopifnot(stats::is.ts(y))
 		FUN2 <- function(z, ...){ # z is the subset (window) from sub_embed() or embed()
-			z <- ts(z, freq=frequency(y))
+			z <- stats::ts(z, freq=stats::frequency(y))
 			mp <- 6 # max order of the polynomial; 6 should cover most cases pretty easily
-			mf <- floor(min(frequency(y)/2, 6)) # default is fourier order of 6, but this might be too high if the frequency of the time series is high b/c the fourier order has to be limited to 1/2 of the frequency.
+			mf <- floor(min(stats::frequency(y)/2, 6)) # default is fourier order of 6, but this might be too high if the frequency of the time series is high b/c the fourier order has to be limited to 1/2 of the frequency.
 			z <- detrendR(z, max_poly=mp, max_fourier=mf, max_interaction=3) # detrending
 			FUN(z, ...) # then apply FUN to the detrended series
 		}
