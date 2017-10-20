@@ -80,6 +80,12 @@ lakes <- c("Peter","Paul") # can be vector; lakes to analyze (Paul, Peter)
 vars <- "chla" # can be vector; variables to analyze (wtr, bga, chla)
 
 
+steps_per_day <- 60*24/(5 * agg_steps) # obs per day = (60 min / 1 hr) * (24 hrs / 1 day) * (1 obs / 5*n min)
+steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
+acf_lag.max <- steps_per_window[1]/14 # 2 days is /14
+window_by <- pmax(1, steps_per_day/(4)) # the denominator is number of window starts per day; if trying to increment window by less than the resolution of the time series, just increment by 1 #c(48, 4, 2, 1)
+
+
 #'   
 #' \FloatBarrier  
 #'   
@@ -171,9 +177,7 @@ plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
 
 #' #Rolling Window Autocorrelation for Select Time Scales
 #+ rollingWindowAC-calculation, cache=TRUE
-steps_per_day <- 60*24/(5 * agg_steps) # observations per day = (60 minutes / 1 hour) * (24 hours / 1 day) * (1 observation / 5*n min)
-steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
-AC_list <- roll_ac.sos(sos_agg, window_elapsed=steps_per_window, vars=vars, lakes=lakes, DETREND=TRUE, by=c(24, 2, 1, 1))
+AC_list <- roll_ac.sos(sos_agg, window_elapsed=steps_per_window, vars=vars, lakes=lakes, DETREND=TRUE, by=window_by)
 
 #+ rollingWindowAC-PaulPeterDifference, fig.width=6, fig.height=6, fig.cap="**Figure.** Rolling windows of first-order autocorrelation from detrended chlorophyll time series. Blue lines are from Paul Lake (reference), red lines are Peter Lake (manipulated). In the second column, the black lines represent the difference (Peter - Paul) between the lines in the first column (positive values indicate that autocorrelation was higher in Peter than in Paul). Each row of the figure has a different sampling frequency."
 plotac <- function(X, ...){
@@ -291,8 +295,8 @@ sub_out <- function(out, ind=list(1,1), type=c("sub", "thin")){
 
 #' ##Calculate ACF Map
 #+ acf-map-calculate, cache=TRUE
-out_L <- acf_roll(x=sosm[lake=="Paul" & variable=="chla", value], width=steps_per_window[1], by=24, DETREND=TRUE)
-out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_per_window[1], by=24, DETREND=TRUE)
+out_L <- acf_roll(x=sosm[lake=="Paul" & variable=="chla", value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
+out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
 
 #' ##Figure: Full ACF Heat Map
 #+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first."
@@ -373,26 +377,27 @@ add_panel_lab_main <- function(let){mtext(let, side=3, line=-0.85, adj=0.01, fon
 # ---- Plot Heat Maps ----
 layout(lay_mat)
 par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1, las=0)
-acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
-add_axis(out_L_sub)
-# add_legend(out_L_sub)
+acf_map(out_L, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
+add_axis(out_L)
+# add_legend(out_L)
 zrange <- range(c(range(out_L), range(out_R), range(out_R-out_L)))
 add_legend2(out_L)
 add_panel_lab_main("A")
 
 
 par(cex=1)
-acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
-add_axis(out_R_sub)
-# add_legend(out_R_sub)
+acf_map(out_R, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
+add_axis(out_R)
+# add_legend(out_R)
 add_legend2(out_R)
 add_panel_lab_main(LETTERS[1+(nScales+1)])
 
 par(cex=1)
-acf_map(out_Diff_sub, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", xlim=xlimR, yaxt='n', xpd=TRUE)
+out_Diff <- out_R - out_L
+acf_map(out_Diff, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", xlim=xlimR, yaxt='n', xpd=TRUE)
 mtext("Day of year", side=1, line=1, xpd=TRUE)
-add_axis(out_Diff_sub)
-# add_legend(out_Diff_sub)
+add_axis(out_Diff)
+# add_legend(out_Diff)
 add_legend2(out_R - out_L)
 add_panel_lab_main(LETTERS[1+(nScales+1)*2])
 
