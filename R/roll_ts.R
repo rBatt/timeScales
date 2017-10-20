@@ -52,7 +52,7 @@ roll_ts <- function(y, width=288, by=1, FUN=mean, x, DETREND=FALSE, ...){
 			z <- stats::ts(z, freq=stats::frequency(y))
 			mp <- 4 # max order of the polynomial; 4 should cover most cases pretty easily
 			mf <- floor(min(stats::frequency(y)/2, 2)) # default is fourier order of 6, but this might be too high if the frequency of the time series is high b/c the fourier order has to be limited to 1/2 of the frequency.
-			z <- detrendR(z, max_poly=mp, max_fourier=mf, max_interaction=2) # detrending
+			z <- detrendR(z, max_poly=mp, max_fourier=mf, max_interaction=if(mf>0){2}else{0}) # detrending
 			FUN(z, ...) # then apply FUN to the detrended series
 		}
 	}else{
