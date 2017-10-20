@@ -313,17 +313,17 @@ out_Diff_sub2 <- out_R_sub2 - out_L_sub2
 #      Begin Plotting ----
 par(mfrow=c(3,1))
 par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
-acf_map(out_L_sub2, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n', zlim=range(out_L_sub))
+acf_map(out_L_sub2, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n', zlim=range(out_L_sub2))
 add_axis(out_L_sub2)
 add_legend(out_L_sub2)
 
 par(cex=1)
-acf_map(out_R_sub2, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", yaxt='n', zlim=range(out_R_sub))
+acf_map(out_R_sub2, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", yaxt='n', zlim=range(out_R_sub2))
 add_axis(out_R_sub2)
 add_legend(out_R_sub2)
 
 par(cex=1)
-acf_map(out_Diff_sub2, xlab="Day of year", ylab="Time scale", main="Difference", yaxt='n', zlim=range(out_Diff_sub))
+acf_map(out_Diff_sub2, xlab="Day of year", ylab="Time scale", main="Difference", yaxt='n', zlim=range(out_Diff_sub2))
 add_axis(out_Diff_sub2)
 add_legend(out_Diff_sub2)
 #'   
@@ -357,7 +357,7 @@ add_panel_lab_main <- function(let){mtext(let, side=3, line=-0.85, adj=0.01, fon
 #      Plot Heat Maps ----
 layout(lay_mat)
 par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1, las=0)
-acf_map(out_L, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
+acf_map(out_L, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n')
 add_axis(out_L)
 # add_legend(out_L)
 zrange <- range(c(range(out_L), range(out_R), range(out_R-out_L)))
@@ -366,7 +366,7 @@ add_panel_lab_main("A")
 
 
 par(cex=1)
-acf_map(out_R, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
+acf_map(out_R, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", yaxt='n')
 add_axis(out_R)
 # add_legend(out_R)
 add_legend2(out_R)
@@ -374,7 +374,7 @@ add_panel_lab_main(LETTERS[1+(nScales+1)])
 
 par(cex=1)
 out_Diff <- out_R - out_L
-acf_map(out_Diff, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", xlim=xlimR, yaxt='n', xpd=TRUE)
+acf_map(out_Diff, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", yaxt='n', xpd=TRUE)
 mtext("Day of year", side=1, line=1, xpd=TRUE)
 add_axis(out_Diff)
 # add_legend(out_Diff)
@@ -394,7 +394,7 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 		suppressWarnings({axis(side=1, labels=(s==1), mgp=c(1,-0.2, 0))})
 		mtext(interval_name(ts_choices[s]), side=3, adj=0.98, font=2, line=-0.75)
 		revS <- (nScales:1)[s]
-		panelLab <- LETTERS[(i-1)*nMain+revS+i] # I appologize to my future self if he needs to understand this. Remember that the plots are created in a very jumbled way due to 1) the layout(), and 2) I go nScales:1 not 1:nScales, and 3) the s loop is outside the i loop [this point interacts with #1, such that I think they cancel each other]. Also, I had to fiddle a bit so I'm not even sure I understand the pattern, so don't be confused by those two points, especially the first, it might not be relevant. The +i at the end is just b/c I want the heat maps to be labeled A, E, and I, such that all the Paul Lake panels can be summarized as A-D, all the Peter Lake panels as E-H, and all the 'difference' panels as I-L.
+		panelLab <- LETTERS[(i-1)*nScales+revS+i] # I appologize to my future self if he needs to understand this. Remember that the plots are created in a very jumbled way due to 1) the layout(), and 2) I go nScales:1 not 1:nScales, and 3) the s loop is outside the i loop [this point interacts with #1, such that I think they cancel each other]. Also, I had to fiddle a bit so I'm not even sure I understand the pattern, so don't be confused by those two points, especially the first, it might not be relevant. The +i at the end is just b/c I want the heat maps to be labeled A, E, and I, such that all the Paul Lake panels can be summarized as A-D, all the Peter Lake panels as E-H, and all the 'difference' panels as I-L.
 		mtext(panelLab, side=3, adj=0.04, font=2, line=if(panelLab=='B'){-0.75}else{-0.75}, cex=1)
 		# mtext(paste(panelLab, interval_name(ts_choices[s]), sep=", "), side=3, adj=0.99, font=2, line=-0.67)
 		# A
