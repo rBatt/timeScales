@@ -96,30 +96,28 @@ window_by <- pmax(1, steps_per_day/(4)) # the denominator is number of window st
 #' #Data Prep
 #' ##Subset, Restructure, Define as ts Object
 #+ data-prep-basic
-# ---- drop tuesday lake ----
+#      drop tuesday lake ----
 sos <- sos_data[Lake!="Tuesday"]
 
-# ---- shorter names ----
+#      shorter names ----
 setnames(sos, 
 	old=c("Year", "Lake", "DoY", "DateTime", "Temp_HYLB", "Chla_Conc_HYLB", "BGA_Conc_HYLB"),
 	new=c("year","lake","doy","datetime","wtr","chla","bga")
 )
 
-# ---- ensure numeric, re-structure data set ----
+#      ensure numeric, re-structure data set ----
 sos[,bga:=as.numeric(bga)]
 sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))[variable%in%vars & lake%in%lakes]
 
-# ---- make measured values of class "ts" with frequency = 288 samples per day ----
+#      make measured values of class "ts" with frequency = 288 samples per day ----
 set_ts <- function(y, x, freq=288){
 	ts(y, freq=288, start=x)
 }
 sosm[, value:=set_ts(y=log(value), x=doy[1]), by=c("year","lake","variable")]
 
-# ---- grab range limits (primarily for plotting) ----
+#      grab range limits (primarily for plotting) ----
 doy_range <- sos[,range(doy, na.rm=TRUE)]
 chla_range <- sos[,range(chla, na.rm=TRUE)]
-# bga_range <- sos[,range(bga, na.rm=TRUE)]
-# wtr_range <- sos[,range(wtr, na.rm=TRUE)]
 
 #' ##Aggregate Data for Typical Rolling Window Calculation
 #+ data-prep-aggregation
@@ -190,16 +188,6 @@ plotac <- function(X, ...){
 	
 	ul <- X[,unique(lake)]
 	for(l in 1:length(ul)){
-		# tX <- X[lake==ul[l]]
-# 		tcol <- c("Paul"="blue","Peter"="red", "zdiff"="black")[ul[l]]
-# 		if(ul[l]=="Paul"){
-# 			plot(tX[,x],tX[,y], type='l', col=tcol, ylim=ylim, ...)
-# 		}else if(ul[l]=="Peter"){
-# 			lines(tX[,x],tX[,y], col=tcol)
-# 		} else if(ul[l]=="zdiff"){
-# 			plot(tX[,x],tX[,y], type='l', col=tcol, ...)
-# 		}
-		
 		dud <- X[lake==ul[l],j={
 			tcol <- c("Paul"="blue","Peter"="red", "zdiff"="black")[lake[1]]
 			if(lake[1]=="Paul"){
@@ -209,7 +197,6 @@ plotac <- function(X, ...){
 			} else if(lake[1]=="zdiff"){
 				p2 <- function(..., ylab, ylab2="") plot(..., ylab=ylab2)
 				p2(x,y, type='l', col=tcol, ...)
-				# abline(h=0, lty="dashed")
 			}
 		
 			NULL
@@ -234,10 +221,7 @@ acf_map <- function(out, ...){
 	obs_lab <- attr(out, "xlab")
 	lag_lab <- attr(out, "ylab")
 	rwbCols <- colorRampPalette(c("blue","white","red"))(256) 
-	# fields::image.plot(x=obs_lab, y=lag_lab[-1], z=out[,2:ncol(out)], col=rwbCols, ...)
 	image(x=obs_lab, y=lag_lab[-1], z=out[,2:ncol(out)], col=rwbCols, ...)
-	# axis(side=2, at=pretty(rev(lag_lab)), labels=pretty(lag_lab))
-	# image(x=obs_lab, y=lag_lab, z=t(out), col=rwbCols)
 	invisible(NULL)
 }
 
@@ -287,12 +271,12 @@ out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_p
 
 #' ##Figure: Full ACF Heat Map
 #+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first.", fig.show='hide', include=FALSE
-# # ---- Thin-out for Fast/ Lighter Plotting ----
+# #      Thin-out for Fast/ Lighter Plotting ----
 # out_L_sub <- sub_out(out_L, ind=list(r=8, c=4), type='thin')
 # out_R_sub <- sub_out(out_R, ind=list(r=8, c=4), type='thin')
 # out_Diff_sub <- out_R_sub - out_L_sub
 #
-# # ---- Begin Plotting ----
+# #      Begin Plotting ----
 # xlimL <- c(min(attr(out_L_sub, "xlab")), 240)
 # xlimR <- c(min(attr(out_R_sub, "xlab")), 240)
 #
@@ -311,17 +295,22 @@ out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_p
 # acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n')
 # add_axis(out_Diff_sub)
 # add_legend(out_Diff_sub)
+#'   
+#' \FloatBarrier  
+#'   
+#' ***  
+#'   
 
 #' ##Figure: Subset ACF Heat Map
 #+ acf-map-subset-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Subset of full data set (zoom on high frequencies and early part of the time series)."
-# ---- Subset to Zoom in on Relevant Bits ----
+#      Subset to Zoom in on Relevant Bits ----
 rInd <- attr(out_L, "xlab") <= 190
 cInd <- attr(out_L, "ylab") <= 144
 out_L_sub2 <- sub_out(out_L, ind=list(r=rInd, c=cInd), type='sub')
 out_R_sub2 <- sub_out(out_R, ind=list(r=rInd, c=cInd), type='sub')
 out_Diff_sub2 <- out_R_sub2 - out_L_sub2
 
-# ---- Begin Plotting ----
+#      Begin Plotting ----
 par(mfrow=c(3,1))
 par(mar=c(2,2,1,3), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
 acf_map(out_L_sub2, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n', zlim=range(out_L_sub))
@@ -337,7 +326,11 @@ par(cex=1)
 acf_map(out_Diff_sub2, xlab="Day of year", ylab="Time scale", main="Difference", yaxt='n', zlim=range(out_Diff_sub))
 add_axis(out_Diff_sub2)
 add_legend(out_Diff_sub2)
-
+#'   
+#' \FloatBarrier  
+#'   
+#' ***  
+#'   
 
 #' ##Figure: Full ACF Heat Map w/ Time Series Insets
 #+ acf-map-full-tsInsets-figure, fig.width=6, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Time series in the insets represent subsets of the full heat map at specific time scales."
@@ -361,7 +354,7 @@ add_legend2 <- function(inputDat){
 }
 add_panel_lab_main <- function(let){mtext(let, side=3, line=-0.85, adj=0.01, font=2, cex=1.2)}
 
-# ---- Plot Heat Maps ----
+#      Plot Heat Maps ----
 layout(lay_mat)
 par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1, las=0)
 acf_map(out_L, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
@@ -407,7 +400,14 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 		# A
 	}
 }
-
+#'   
+#' \FloatBarrier  
+#'   
+#' ***  
+#'   
+#' #Session Info
+#+ sessionInfo
+sessionInfo()
 
 
 
