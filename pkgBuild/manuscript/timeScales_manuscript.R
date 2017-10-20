@@ -107,7 +107,7 @@ sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))[variable%in%vars & 
 set_ts <- function(y, x, freq=288){
 	ts(y, freq=288, start=x)
 }
-sosm[, value:=set_ts(y=log(value), x=doy[1]), by=c("year","lake","variable")]
+sosm[, value:=set_ts(y=value, x=doy[1]), by=c("year","lake","variable")]
 
 #      grab range limits (primarily for plotting) ----
 doy_range <- sos[,range(doy, na.rm=TRUE)]
