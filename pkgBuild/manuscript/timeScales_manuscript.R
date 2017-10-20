@@ -113,7 +113,7 @@ sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))[variable%in%vars & 
 set_ts <- function(y, x, freq=288){
 	ts(y, freq=288, start=x)
 }
-sosm[, value:=set_ts(y=value, x=doy[1]), by=c("year","lake","variable")]
+sosm[, value:=set_ts(y=log(value), x=doy[1]), by=c("year","lake","variable")]
 
 # ---- grab range limits (primarily for plotting) ----
 doy_range <- sos[,range(doy, na.rm=TRUE)]
@@ -142,11 +142,11 @@ names(sos_agg) <- paste0("agg", agg_steps)
 #' Around day 180, Peter Lake has a blue-green algal bloom. Maximum BGA in Peter is ~4x's higher than maximum BGA in Paul Lake.  
 #'   
 #' ##Figure: Time Series
-#+ chla-timeSeries-figure, fig.width=3.5, fig.height=5, fig.cap="**Figure.** High frequency chlorophyll (chla, micrograms per liter) time series in Peter (red) and Paul (blue) lakes in 2015.", results='hide'
+#+ chla-timeSeries-figure, fig.width=3, fig.height=5, fig.cap="**Figure.** High frequency chlorophyll (chla, micrograms per liter) time series in Peter (red) and Paul (blue) lakes in 2015.", results='hide'
 par(mfcol=c(2,1), mar=c(2, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sosm[lake=="Paul" & variable=="chla", plot(doy, value, xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
+sosm[lake=="Paul" & variable=="chla", plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
 mtext("Paul Lake (Reference)", side=3, line=-0.1, adj=0.05, font=2)
-sosm[lake=="Peter" & variable=="chla", plot(doy, value, xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
+sosm[lake=="Peter" & variable=="chla", plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
 mtext("Peter Lake (Manipulated)", side=3, line=-0.1, adj=0.05, font=2)
 #'   
 #'   
@@ -169,7 +169,7 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 	mtext(main, side=3, line=0.1, font=2)
 	invisible(NULL)
 }
-#+ chlorophyll-acf-figure, fig.width=3.5, fig.height=5, fig.cap="**Figure.** Autocorrelation function (ACF) of chlorophyll a (indicator of algal biomass) from Peter Lake (manipulated) and Paul Lake (reference).", results='hide'
+#+ chlorophyll-acf-figure, fig.width=3, fig.height=5, fig.cap="**Figure.** Autocorrelation function (ACF) of chlorophyll a (indicator of algal biomass) from Peter Lake (manipulated) and Paul Lake (reference).", results='hide'
 par(mfrow=c(2,1), mar=c(2, 2.0, 0.25, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
 plot_acf(ylab="Paul Lake Chlorophyll ACF", main="")
 plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
