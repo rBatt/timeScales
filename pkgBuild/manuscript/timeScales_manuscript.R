@@ -351,47 +351,69 @@ add_legend(out_Diff_sub2)
 
 #' ##Figure: Full ACF Heat Map w/ Time Series Insets
 #+ acf-map-full-tsInsets-figure, fig.width=6, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Time series in the insets represent subsets of the full heat map at specific time scales."
-# ---- Setup Layout Matrix ----
-ts_choices <- c(1, 12*3, 12*24)
+#      Setup Layout Matrix ----
+nMain <- 3 # the number of heat map panels
+ts_choices <- c(1, 12*3, 12*6, 12*24)
 nScales <- length(ts_choices)
 widthFac <- 3 # how much wider the heat maps are relative to the time series
-tsPos <- seq(4, by=nScales, length.out=nScales)+rep(0:2, each=nScales)
-lay_mat <- matrix(c(tsPos, rep(rep((1:3),each=nScales),widthFac)), ncol=widthFac+1)
+pExpand <- 6 # number of times (*) to expand each time series panel
+bExpand <- 1 # number of buffer panels to add above and below each set of nScales time series panels
+panelVec <- rep(rep((1:nMain),each=nScales*pExpand+2*bExpand),widthFac)
+tsBase <- seq(4, by=nMain, length.out=nScales)+rep(0:2, each=nScales)
+tsPos <- rep(tsBase, each=pExpand)
+buffer_mat <- matrix(rep(0, nMain*bExpand),ncol=nMain)
+ts_buffer_mat <- rbind(buffer_mat, matrix(tsPos, ncol=nMain), buffer_mat)
+lay_mat <- matrix(c(c(ts_buffer_mat), panelVec), ncol=widthFac+1)
+
+#      Add Legend -- Custom Function ----
+add_legend2 <- function(inputDat){
+	mapLegend(x=1.03, y=0.5, w=0.05, h=0.9, zlim=range(inputDat), cols=c("blue","white","red"), horiz=FALSE, axSide=4, lab.cex=1, lab.sig=2, offset=0.2, xpd=TRUE)
+}
+add_panel_lab_main <- function(let){mtext(let, side=3, line=-0.85, adj=0.01, font=2, cex=1.2)}
 
 #      Plot Heat Maps ----
 layout(lay_mat)
-par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1)
+par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1, las=0)
 acf_map(out_L_sub, xlab="", ylab="Time scale", main="Paul Lake (reference)", xlim=xlimL, yaxt='n')
 add_axis(out_L_sub)
 # add_legend(out_L_sub)
+zrange <- range(c(range(out_L), range(out_R), range(out_R-out_L)))
+add_legend2(out_L)
+add_panel_lab_main("A")
+
 
 par(cex=1)
 acf_map(out_R_sub, xlab="", ylab="Time scale", main="Peter Lake (manipulated)", xlim=xlimR, yaxt='n')
 add_axis(out_R_sub)
 # add_legend(out_R_sub)
+add_legend2(out_R)
+add_panel_lab_main(LETTERS[1+(nScales+1)])
 
 par(cex=1)
-acf_map(out_Diff_sub, xlab="Day of year", ylab="Time scale", main="Difference", xlim=xlimR, yaxt='n', xpd=TRUE)
+acf_map(out_Diff_sub, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", xlim=xlimR, yaxt='n', xpd=TRUE)
+mtext("Day of year", side=1, line=1, xpd=TRUE)
 add_axis(out_Diff_sub)
 # add_legend(out_Diff_sub)
+add_legend2(out_R - out_L)
+add_panel_lab_main(LETTERS[1+(nScales+1)*2])
 
-# ---- Plot Time Series ----
-# Determine Indices for Time Scales
-
-ts2_ind <- list(r=1:nrow(out_L), c=ts_choices[2]+1)
-ts3_ind <- list(r=1:nrow(out_L), c=ts_choices[3]+1)
+#      Plot Time Series ----
+suppressWarnings({par(mar=c(0.25,1.25,0.1,0.1), mgp=c(1,0.15,0), tcl=0.15, las=1, ps=8)})
 xval <- attr(out_L, "xlab")
-
-# First Time Scale
-suppressWarnings({par(mar=c(0.75,0.75,0.1,0.1), mgp=c(1,-0.1,0), tcl=0.15)})
-for(s in nScales:1){
+for(s in nScales:1){ # iterate through time scales more slowly than throw main plots (paul, peter, diff)
 	ts_ind <- list(r=1:nrow(out_L), c=ts_choices[s]+1)
-	for(i in 1:3){
+	for(i in 1:nMain){ # iterate through main plots more quickly, plotting same time scale for each of paul, peter, diff
 		tout <- switch(i, out_L, out_R, (out_R-out_L))
 		ts_temp <- c(sub_out(tout, ind=ts_ind, type="sub"))
-		plot(xval, ts_temp, xlab="", ylab="", type='l', xaxt='n')
-		axis(side=1, labels=F)
+		plot(xval, ts_temp, xlab="", ylab="", type='l', xaxt='n', yaxt='n')
+		axis(side=2, labels=TRUE, at=pretty(ts_temp, n=3), xpd=F)
+		suppressWarnings({axis(side=1, labels=(s==1), mgp=c(1,-0.2, 0))})
 		mtext(interval_name(ts_choices[s]), side=3, adj=0.98, font=2, line=-0.75)
+		revS <- (nScales:1)[s]
+		panelLab <- LETTERS[(i-1)*nMain+revS+i] # I appologize to my future self if he needs to understand this. Remember that the plots are created in a very jumbled way due to 1) the layout(), and 2) I go nScales:1 not 1:nScales, and 3) the s loop is outside the i loop [this point interacts with #1, such that I think they cancel each other]. Also, I had to fiddle a bit so I'm not even sure I understand the pattern, so don't be confused by those two points, especially the first, it might not be relevant. The +i at the end is just b/c I want the heat maps to be labeled A, E, and I, such that all the Paul Lake panels can be summarized as A-D, all the Peter Lake panels as E-H, and all the 'difference' panels as I-L.
+		mtext(panelLab, side=3, adj=0.04, font=2, line=if(panelLab=='B'){-1.0}else{-0.75}, cex=1)
+		# mtext(paste(panelLab, interval_name(ts_choices[s]), sep=", "), side=3, adj=0.99, font=2, line=-0.67)
+		# A
 	}
 }
 
