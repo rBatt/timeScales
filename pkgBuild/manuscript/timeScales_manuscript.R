@@ -138,9 +138,9 @@ names(sos_agg) <- paste0("agg", agg_steps)
 #' ##Figure: Time Series
 #+ chla-timeSeries-figure, fig.width=3.5, fig.height=5, fig.cap="**Figure.** High frequency chlorophyll (chla, micrograms per liter) time series in Peter (red) and Paul (blue) lakes in 2015.", results='hide'
 par(mfcol=c(2,1), mar=c(2, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sos[lake=="Paul", plot(doy, chla, xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
+sosm[lake=="Paul" & variable=="chla", plot(doy, value, xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
 mtext("Paul Lake (Reference)", side=3, line=-0.1, adj=0.05, font=2)
-sos[lake=="Peter", plot(doy, chla, xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
+sosm[lake=="Peter" & variable=="chla", plot(doy, value, xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
 mtext("Peter Lake (Manipulated)", side=3, line=-0.1, adj=0.05, font=2)
 #'   
 #'   
