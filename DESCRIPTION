@@ -1,6 +1,6 @@
 Package: timeScales
 Title: Effect of Time Scale on Early Warning Statistics
-Version: 0.0.0.9000
+Version: 0.1
 Authors@R: person("Ryan", "Batt", email = "battrd@gmail.com", role = c("aut", "cre"))
 Description: Regime shifts are abrupt changes in complex systems that are
     hard to predict, but their approach might be signaled by changes in the
