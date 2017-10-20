@@ -10,7 +10,7 @@
 colorBar <- function(bar1, bar2, cols, n=256){
 	cols <- grDevices::colorRampPalette(cols)(n)
 	bars <- mapply(function(x, y){seq(x,y, length.out=n)}, bar1, bar2)
-	segments(bars[,1], bars[,2], bars[,3], bars[,4], col=cols)
+	graphics::segments(bars[,1], bars[,2], bars[,3], bars[,4], col=cols)
 	return(bars)
 }
 
@@ -21,19 +21,20 @@ colorBar <- function(bar1, bar2, cols, n=256){
 #' @param x,y the locations of the center of the legend, as a proportion of plot area (between 0 and 1)
 #' @param w,h the width and height of the legend, as a proportion of plot area
 #' @param zlim lower and upper limit of values indicated by colors
-#' @param cols colors used in the original plot; e.g., created by \code{\link{zCol}}. Note that it is assumed that color and the value change linearly
+#' @param cols colors used in the original plot; e.g., created by \code{trawlDiversity::zCol}. Note that it is assumed that color and the value change linearly
 #' @param horiz Logical, if FALSE (default), the colors in the legend change long the vertical axis
 #' @param axSide the side of the color bar on which the axis (line, ticks, labels) should be placed; if missing, reasonable default is chosen
 #' @param adj length 1 or 2 numeric vector to be passed to \code{\link{text}} that will affect the position of the tick marks; if missing, reasonable default is chosen
 #' @param offset length 1 numeric vector to be passed to \code{\link{text}} that will affect the position of the axis labels; if missing, reasonable default is chosen
 #' @param lab.cex numeric value to be passed to \code{cex} argument of \code{\link{text}} that will affect the size of the axis labels
 #' @param lab.sig integer, the number of significant digits to which the axis labels should be rounded; see \code{\link{signif}}
+#' @param ... arguments passed to \code{\link{par}}
 #' 
 #' @examples
 #' data(volcano)
 #' v <- volcano
 #' v[v<=quantile(v,0.2)] <- NA # small values to NA (will plot white)
-#' v_cols <- zCol(256, 1:256)
+#' v_cols <- c("blue","white","red") # zCol(256, 1:256)
 #' image(v, col=v_cols)
 #' zl <- range(v, na.rm=TRUE)
 #' mapLegend(x=0.9, y=0.85, zlim=zl, cols=v_cols)
@@ -43,10 +44,10 @@ colorBar <- function(bar1, bar2, cols, n=256){
 #' 
 #' @export
 mapLegend <- function(x=0.9, y=0.2, w=0.05, h=0.25, zlim, cols, horiz=FALSE, axSide, adj, offset, lab.cex=1, lab.sig=2, ...){
-	par(...)
+	graphics::par(...)
 	# define legend size and position
-	ux <- par('usr')[1:2]
-	uy <- par('usr')[3:4]
+	ux <- graphics::par('usr')[1:2]
+	uy <- graphics::par('usr')[3:4]
 	rx <- diff(ux)
 	ry <- diff(uy)
 	x_cent <- ux[1] + rx*x
@@ -87,7 +88,7 @@ mapLegend <- function(x=0.9, y=0.2, w=0.05, h=0.25, zlim, cols, horiz=FALSE, axS
 	'4' = c(3, 4)
 	)
 	ax_line <- bars[,ax_line_opts[[axSide]]]
-	lines(ax_line, lwd=1.5)
+	graphics::lines(ax_line, lwd=1.5)
 	
 	# add axis labels
 	if(length(unique(zlim[!is.na(zlim)]))==1){
@@ -96,7 +97,7 @@ mapLegend <- function(x=0.9, y=0.2, w=0.05, h=0.25, zlim, cols, horiz=FALSE, axS
 	}
 	zvals <- do.call('seq', c(as.list(zlim),list(length.out=nrow(bars))))
 	# ticks <- quantile(zvals, c(0, 1/4, 0.5, 3/4, 1)) #pretty(zvals, n=3)
-	ticks <- quantile(zvals, c(0.1, 0.5, 0.9)) #pretty(zvals, n=3)
+	ticks <- stats::quantile(zvals, c(0.1, 0.5, 0.9)) #pretty(zvals, n=3)
 	tick_inds <- apply(outer(zvals, ticks, "-"), 2, function(x)which.min(abs(x)))
 	
 	tx <- ax_line[,1]
@@ -123,11 +124,11 @@ mapLegend <- function(x=0.9, y=0.2, w=0.05, h=0.25, zlim, cols, horiz=FALSE, axS
 	}
 	
 	if(horiz){
-		text(tl_x, tl_y, labels="-", adj=adj, cex=lab.cex, srt=90)
-		text(tl_x, tl_y, labels=signif(ticks,lab.sig), pos=axSide, offset=offset, cex=lab.cex, srt=270)
+		graphics::text(tl_x, tl_y, labels="-", adj=adj, cex=lab.cex, srt=90)
+		graphics::text(tl_x, tl_y, labels=signif(ticks,lab.sig), pos=axSide, offset=offset, cex=lab.cex, srt=270)
 	}else{
-		text(tl_x, tl_y, labels="-", adj=adj, cex=lab.cex)
-		text(tl_x, tl_y, labels=signif(ticks,lab.sig), pos=axSide, offset=offset, cex=lab.cex)
+		graphics::text(tl_x, tl_y, labels="-", adj=adj, cex=lab.cex)
+		graphics::text(tl_x, tl_y, labels=signif(ticks,lab.sig), pos=axSide, offset=offset, cex=lab.cex)
 	}
 	invisible(NULL)	
 }

@@ -14,7 +14,7 @@ mapLegend(x = 0.9, y = 0.2, w = 0.05, h = 0.25, zlim, cols,
 
 \item{zlim}{lower and upper limit of values indicated by colors}
 
-\item{cols}{colors used in the original plot; e.g., created by \code{\link{zCol}}. Note that it is assumed that color and the value change linearly}
+\item{cols}{colors used in the original plot; e.g., created by \code{trawlDiversity::zCol}. Note that it is assumed that color and the value change linearly}
 
 \item{horiz}{Logical, if FALSE (default), the colors in the legend change long the vertical axis}
 
@@ -27,6 +27,8 @@ mapLegend(x = 0.9, y = 0.2, w = 0.05, h = 0.25, zlim, cols,
 \item{lab.cex}{numeric value to be passed to \code{cex} argument of \code{\link{text}} that will affect the size of the axis labels}
 
 \item{lab.sig}{integer, the number of significant digits to which the axis labels should be rounded; see \code{\link{signif}}}
+
+\item{...}{arguments passed to \code{\link{par}}}
 }
 \description{
 Adds a bar that associates numeric values with colors.  Useful for ay plot that uses a linear color gradient to indicate a numeric value, and for which there are too many colors/ values to specify each individually.
@@ -35,7 +37,7 @@ Adds a bar that associates numeric values with colors.  Useful for ay plot that 
 data(volcano)
 v <- volcano
 v[v<=quantile(v,0.2)] <- NA # small values to NA (will plot white)
-v_cols <- zCol(256, 1:256)
+v_cols <- c("blue","white","red") # zCol(256, 1:256)
 image(v, col=v_cols)
 zl <- range(v, na.rm=TRUE)
 mapLegend(x=0.9, y=0.85, zlim=zl, cols=v_cols)
