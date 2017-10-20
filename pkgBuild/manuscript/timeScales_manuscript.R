@@ -260,19 +260,6 @@ add_axis <- function(out){
 	invisible()
 }
 
-# thin_out <- function(out, rowInt, colInt){
-# 	xlab <- attr(out, "xlab")
-# 	ylab <- attr(out, "ylab")
-# 	nr <- nrow(out)
-# 	nc <- ncol(out)
-# 	rVec <- ((1:nr)%%rowInt)==0
-# 	cVec <- ((1:nc)%%colInt)==0
-# 	out2 <- out[rVec, cVec]
-# 	attr(out2, "xlab") <- xlab[rVec]
-# 	attr(out2, "ylab") <- ylab[cVec]
-# 	return(out2)
-# }
-
 sub_out <- function(out, ind=list(1,1), type=c("sub", "thin")){
 	type <- match.arg(type)
 	xlab <- attr(out, "xlab")
