@@ -77,7 +77,7 @@ opts_chunk$set(
 win_days <- 28 # window size in days covered
 agg_steps <- c(1, 12, 288, 288*2) # step sizes for aggregation
 lakes <- c("Peter","Paul") # can be vector; lakes to analyze (Paul, Peter)
-vars <- "bga" #"chla" # can be vector; variables to analyze (wtr, bga, chla)
+vars <- "chla" #"bga" # can be vector; variables to analyze (wtr, bga, chla)
 
 
 steps_per_day <- 60*24/(5 * agg_steps) # obs per day = (60 min / 1 hr) * (24 hrs / 1 day) * (1 obs / 5*n min)
