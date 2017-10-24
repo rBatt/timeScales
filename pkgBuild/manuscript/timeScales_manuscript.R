@@ -405,8 +405,9 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 #'   
 #' ***  
 #'   
-#' #Session Info
-#+ sessionInfo
+#' # Info
+#+ Info, results='markup'
+Sys.Date()
 sessionInfo()
 
 
