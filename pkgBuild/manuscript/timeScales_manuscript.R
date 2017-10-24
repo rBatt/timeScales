@@ -174,7 +174,7 @@ plot_acf(ln='Peter', v=vars, ylab=paste0("Peter Lake", c("chla"="Chlorophyll", "
 #' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
 
 #' #Rolling Window Autocorrelation for Select Time Scales
-#+ rollingWindowAC-calculation, cache=TRUE
+#+ rollingWindowAC-calculation, cache=FALSE
 AC_list <- roll_ac.sos(sos_agg, window_elapsed=steps_per_window, vars=vars, lakes=lakes, DETREND=TRUE, by=window_by)
 
 #+ rollingWindowAC-PaulPeterDifference, fig.width=6, fig.height=6, fig.cap="**Figure.** Rolling windows of first-order autocorrelation from detrended chlorophyll time series. Blue lines are from Paul Lake (reference), red lines are Peter Lake (manipulated). In the second column, the black lines represent the difference (Peter - Paul) between the lines in the first column (positive values indicate that autocorrelation was higher in Peter than in Paul). Each row of the figure has a different sampling frequency."
@@ -265,7 +265,7 @@ sub_out <- function(out, ind=list(1,1), type=c("sub", "thin")){
 }
 
 #' ##Calculate ACF Map
-#+ acf-map-calculate, cache=TRUE
+#+ acf-map-calculate, cache=FALSE
 out_L <- acf_roll(x=sosm[lake=="Paul" & variable==vars, value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
 out_R <- acf_roll(x=sosm[lake=="Peter" & variable==vars, value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
 
