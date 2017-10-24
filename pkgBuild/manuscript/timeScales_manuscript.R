@@ -77,7 +77,7 @@ opts_chunk$set(
 win_days <- 28 # window size in days covered
 agg_steps <- c(1, 12, 288, 288*2) # step sizes for aggregation
 lakes <- c("Peter","Paul") # can be vector; lakes to analyze (Paul, Peter)
-vars <- "chla" # can be vector; variables to analyze (wtr, bga, chla)
+vars <- "bga" #"chla" # can be vector; variables to analyze (wtr, bga, chla)
 
 
 steps_per_day <- 60*24/(5 * agg_steps) # obs per day = (60 min / 1 hr) * (24 hrs / 1 day) * (1 obs / 5*n min)
@@ -142,9 +142,9 @@ names(sos_agg) <- paste0("agg", agg_steps)
 #' ##Figure: Time Series
 #+ chla-timeSeries-figure, fig.width=3, fig.height=5, fig.cap="**Figure.** High frequency chlorophyll (chla, micrograms per liter) time series in Peter (red) and Paul (blue) lakes in 2015.", results='hide'
 par(mfcol=c(2,1), mar=c(2, 2.0, 1, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-sosm[lake=="Paul" & variable=="chla", plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="", ylab="Chlorophyll")]
+sosm[lake=="Paul" & variable==vars, plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="", ylab=c("chla"="Chlorophyll", "bga"="Phycocyanin")[vars])]
 mtext("Paul Lake (Reference)", side=3, line=-0.1, adj=0.05, font=2)
-sosm[lake=="Peter" & variable=="chla", plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="Day of year", ylab="Chlorophyll")]
+sosm[lake=="Peter" & variable==vars, plot(doy, exp(value), xlim=doy_range, col="black", type='l', xlab="Day of year", ylab=c("chla"="Chlorophyll", "bga"="Phycocyanin")[vars])]
 mtext("Peter Lake (Manipulated)", side=3, line=-0.1, adj=0.05, font=2)
 #'   
 #'   
@@ -169,8 +169,8 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 }
 #+ chlorophyll-acf-figure, fig.width=3, fig.height=5, fig.cap="**Figure.** Autocorrelation function (ACF) of chlorophyll a (indicator of algal biomass) from Peter Lake (manipulated) and Paul Lake (reference).", results='hide'
 par(mfrow=c(2,1), mar=c(2, 2.0, 0.25, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
-plot_acf(ylab="Paul Lake Chlorophyll ACF", main="")
-plot_acf(ln='Peter', ylab="Peter Lake Chlorophyll ACF", main="")
+plot_acf(v=vars, ylab=paste0("Paul Lake", c("chla"="Chlorophyll", "bga"=" Phycocyanin")[vars], " ACF"), main="")
+plot_acf(ln='Peter', v=vars, ylab=paste0("Peter Lake", c("chla"="Chlorophyll", "bga"=" Phycocyanin")[vars], " ACF"), main="")
 #' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
 
 #' #Rolling Window Autocorrelation for Select Time Scales
@@ -206,7 +206,7 @@ plotac <- function(X, ...){
 	invisible()
 }
 
-ylabs <- paste0("Chl-a AR(1) (", sapply(agg_steps, interval_name), ")")
+ylabs <- paste0(c("chla"="Chl-a", "bga"="Phyco")[vars], " AR(1) (", sapply(agg_steps, interval_name), ")")
 
 xlabs <- rep("", length(agg_steps))
 xlabs[length(agg_steps)] <- "Day of Year"
@@ -266,8 +266,8 @@ sub_out <- function(out, ind=list(1,1), type=c("sub", "thin")){
 
 #' ##Calculate ACF Map
 #+ acf-map-calculate, cache=TRUE
-out_L <- acf_roll(x=sosm[lake=="Paul" & variable=="chla", value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
-out_R <- acf_roll(x=sosm[lake=="Peter" & variable=="chla", value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
+out_L <- acf_roll(x=sosm[lake=="Paul" & variable==vars, value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
+out_R <- acf_roll(x=sosm[lake=="Peter" & variable==vars, value], width=steps_per_window[1], by=window_by[1], lag.max=acf_lag.max, DETREND=TRUE)
 
 #' ##Figure: Full ACF Heat Map
 #+ acf-map-full-figure, fig.width=3, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first.", fig.show='hide', include=FALSE
