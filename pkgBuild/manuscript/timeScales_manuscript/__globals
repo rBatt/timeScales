@@ -1,2 +1,2 @@
-acf-map-calculate	&	==	acf_lag.max	acf_roll	lake	sosm	steps_per_window	value	variable	window_by
+acf-map-calculate	&	==	acf_lag.max	acf_roll	lake	sosm	steps_per_window	value	variable	vars	window_by
 rollingWindowAC-calculation	lakes	roll_ac.sos	sos_agg	steps_per_window	vars	window_by
