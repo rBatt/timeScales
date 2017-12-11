@@ -171,7 +171,8 @@ plot_acf <- function(ln=c("Paul","Peter"), v=c("chla", "bga"), na.action=na.excl
 par(mfrow=c(2,1), mar=c(2, 2.0, 0.25, 0.25), mgp=c(1, 0.25, 0), tcl=-0.15, ps=8, cex=1)
 plot_acf(v=vars, ylab=paste0("Paul Lake", c("chla"="Chlorophyll", "bga"=" Phycocyanin")[vars], " ACF"), main="")
 plot_acf(ln='Peter', v=vars, ylab=paste0("Peter Lake", c("chla"="Chlorophyll", "bga"=" Phycocyanin")[vars], " ACF"), main="")
-#' Autocorrelation is time scale dependent in both the manipulated and the reference lake. 
+#' Autocorrelation is time scale dependent in both the manipulated and the reference lake.  
+#'   
 
 #' #Rolling Window Autocorrelation for Select Time Scales
 #+ rollingWindowAC-calculation, cache=FALSE
@@ -388,6 +389,60 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 	ts_ind <- list(r=1:nrow(out_L), c=ts_choices[s]+1)
 	for(i in 1:nMain){ # iterate through main plots more quickly, plotting same time scale for each of paul, peter, diff
 		tout <- switch(i, out_L, out_R, (out_R-out_L))
+		ts_temp <- c(sub_out(tout, ind=ts_ind, type="sub"))
+		plot(xval, ts_temp, xlab="", ylab="", type='l', xaxt='n', yaxt='n')
+		axis(side=2, labels=TRUE, at=pretty(ts_temp, n=3), xpd=F)
+		suppressWarnings({axis(side=1, labels=(s==1), mgp=c(1,-0.2, 0))})
+		mtext(interval_name(ts_choices[s]), side=3, adj=0.98, font=2, line=-0.75)
+		revS <- (nScales:1)[s]
+		panelLab <- LETTERS[(i-1)*nScales+revS+i] # I appologize to my future self if he needs to understand this. Remember that the plots are created in a very jumbled way due to 1) the layout(), and 2) I go nScales:1 not 1:nScales, and 3) the s loop is outside the i loop [this point interacts with #1, such that I think they cancel each other]. Also, I had to fiddle a bit so I'm not even sure I understand the pattern, so don't be confused by those two points, especially the first, it might not be relevant. The +i at the end is just b/c I want the heat maps to be labeled A, E, and I, such that all the Paul Lake panels can be summarized as A-D, all the Peter Lake panels as E-H, and all the 'difference' panels as I-L.
+		mtext(panelLab, side=3, adj=0.04, font=2, line=if(panelLab=='B'){-0.75}else{-0.75}, cex=1)
+		# mtext(paste(panelLab, interval_name(ts_choices[s]), sep=", "), side=3, adj=0.99, font=2, line=-0.67)
+		# A
+	}
+}
+
+#'   
+#' \FloatBarrier  
+#'   
+#' ***  
+#'   
+
+#+ acf-map-full-tsInsets-figure, fig.width=6, fig.height=6, fig.cap="**Figure** Autocorrelation at a across many time scales, using the ACF function. Each window is detrended first. Time series in the insets represent subsets of the full heat map at specific time scales. Each time scale is standardized, with its mean removed and divded by its standard deviation."
+#      Plot Heat Maps ----
+layout(lay_mat)
+par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=8, cex=1, las=0)
+acf_map(scale(out_L), xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n')
+add_axis(scale(out_L))
+# add_legend(out_L)
+zrange <- range(c(range(scale(out_L)), range(scale(out_R)), range(scale(out_R-out_L))))
+add_legend2(scale(out_L))
+add_panel_lab_main("A")
+
+
+par(cex=1)
+acf_map(scale(out_R), xlab="", ylab="Time scale", main="Peter Lake (manipulated)", yaxt='n')
+add_axis(scale(out_R))
+# add_legend(out_R)
+add_legend2(scale(out_R))
+add_panel_lab_main(LETTERS[1+(nScales+1)])
+
+par(cex=1)
+out_Diff <- scale(out_R - out_L)
+acf_map(out_Diff, xlab="", ylab="Time scale", main="Difference (manipulated - reference)", yaxt='n', xpd=TRUE)
+mtext("Day of year", side=1, line=1, xpd=TRUE)
+add_axis(out_Diff)
+# add_legend(out_Diff)
+add_legend2(scale(out_R - out_L))
+add_panel_lab_main(LETTERS[1+(nScales+1)*2])
+
+#      Plot Time Series ----
+suppressWarnings({par(mar=c(0.25,1.25,0.1,0.1), mgp=c(1,0.15,0), tcl=0.15, las=1, ps=8)})
+xval <- attr(out_L, "xlab")
+for(s in nScales:1){ # iterate through time scales more slowly than throw main plots (paul, peter, diff)
+	ts_ind <- list(r=1:nrow(out_L), c=ts_choices[s]+1)
+	for(i in 1:nMain){ # iterate through main plots more quickly, plotting same time scale for each of paul, peter, diff
+		tout <- switch(i, scale(out_L), scale(out_R), scale(out_R-out_L))
 		ts_temp <- c(sub_out(tout, ind=ts_ind, type="sub"))
 		plot(xval, ts_temp, xlab="", ylab="", type='l', xaxt='n', yaxt='n')
 		axis(side=2, labels=TRUE, at=pretty(ts_temp, n=3), xpd=F)
