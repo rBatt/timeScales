@@ -10,7 +10,7 @@
 #' Eutrophication Bifurcation
 #' Model of lake eutrophication via elevated phosphorus loading. When as phosphorus loading increases, a fold bifurcation is reached, and the system switches into a eutrophic state from a oligotrophic state. Based on Carpenter and Brock 2006 (Ecology Letters).
 #' @param F input rate of phosporus to soil
-#' @param c coefficient for transfer of soil phosphorus to the lake
+#' @param C coefficient for transfer of soil phosphorus to the lake
 #' @param H noise for input to the lake
 #' @param s sedimentation loss
 #' @param h hydrologic loss (outflow)
@@ -27,7 +27,7 @@
 # =============================
 # # parameter table from Carpenter 2005 PNAS
 # b=0.001 # per year
-# c=0.00115 # per year
+# C=0.00115 # per year
 # F=31.6 # grams per meter squared per year
 # h=0.15 # per year
 # H=18.6 # grams per meter squared per year; different from carpenter and Brock 2006; in Carpenter 2005 PNAS this is "annual export of P from the watershed in farm products, per unit lake area". In Carpenter & Brock 2006 this is "noise for input to the lake"
@@ -41,7 +41,7 @@
 
 # # parameters needed for carpenter & brock 2006 model
 # b=0.001 # per year
-# c=0.00115 # per year
+# C=0.00115 # per year
 # F= 14.6 # grams per meter squared per year # is 14.6 in the copy of Table S1 that Steve sent me; 31.6 is the value in the 2005 PNAS paper
 # h=0.15 # per year
 # m=2.4 # grams per meter squared
@@ -54,14 +54,14 @@
 # =======================================
 # = Model for 1 Deterministic Time Step =
 # =======================================
-modelDeterministic <- function(state, pars=c(c=0.00115), F=14.6, b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
+modelDeterministic <- function(state, pars=c(C=0.00115), F=14.6, b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
 	with(as.list(c(state, pars)),{ # allows referring to names as variables; convenient
-		R <- X^q/(m^q + X^q) # recycling
+		R <- (X^q)/(m^q + X^q) # recycling
 		H <- 1 # set to 1 as per appendix
 		MRX <- M*R
 		rMRX <- r*MRX
-		dU_dt <- F - c*U*H # soil P
-		dX_dt <- c*U*H - (s+h)*X + rMRX # + MRX # water P
+		dU_dt <- F - C*U*H # soil P
+		dX_dt <- C*U*H - (s+h)*X + rMRX # + MRX # water P
 		dM_dt <- s*X - b*M - rMRX # - MRX # mud P
 		c(dU_dt=dU_dt, dX_dt=dX_dt, dM_dt=dM_dt) # rate of change in UXM
 	}) # end with
@@ -71,15 +71,15 @@ modelDeterministic <- function(state, pars=c(c=0.00115), F=14.6, b=0.001, h=0.15
 # = Model Holding Soil P Constant (to solve for water and mud P) =
 # ================================================================
 # In this model, instead of being a dynamic state variable, U is a parameter, just like c
-modelDeterministicXM <- function(state, pars=c(c=0.00115, U=1), b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
+modelDeterministicXM <- function(state, pars=c(C=0.00115, U=1), b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
 	with(as.list(c(state, pars)),{ # use with() so that I can refer to column names in state and names in pars as variables
 		# U <- 14.6/c
-		R <- X^q/(m^q + X^q) # recycling
+		R <- (X^q)/(m^q + X^q) # recycling
 		H <- 1 # noise; set to 1, as per appendix
 		MRX <- M*R
 		rMRX <- r*MRX
-		# dU_dt <- F - c*U*H
-		dX_dt <- c*U*H - (s+h)*X + rMRX # + MRX # water P dynamics
+		# dU_dt <- F - C*U*H
+		dX_dt <- C*U*H - (s+h)*X + rMRX # + MRX # water P dynamics
 		dM_dt <- s*X - b*M - rMRX # - MRX # sediment P dynamics
 		c(dX_dt=dX_dt, dM_dt=dM_dt) # output rate of change for X and M
 	}) # end with
@@ -93,12 +93,12 @@ nYears <- 300 # number of years for simulation
 dt <- 1/36 # number of time steps per year
 stateMat <- matrix(NA, nrow=nYears/dt, ncol=3, dimnames=list(NULL, c("U","X","M"))) # empty matrix to hold state variables
 
-c <- 0.00115 # nominal fraction of soil P washed into the lake
+C <- 0.00115 # nominal fraction of soil P washed into the lake
 stateMat[1,] <- c(1, 0.01, 1) # set initial values for time series simulation
 
 for(j in 2:nrow(stateMat)){ # iterate through time steps
 	state <- stateMat[j-1,]
-	dState_dt <- modelDeterministic(state=state, pars=c(c=c))
+	dState_dt <- modelDeterministic(state=state, pars=c(c=C))
 	
 	# Runge-Kutta Approximation
 	# Not sure if I did this correctly
@@ -126,24 +126,44 @@ stateMat[nrow(stateMat),]
 # = Try to Calculate Roots across Gradient of c and Grid of State Variables U, X, and M =
 # =======================================================================================
 # Find roots, U, X and M are dynamic
-cGrid <- seq(0.00001, 0.005, length.out=10)
-seqFun <- function(x){do.call('seq', list(from=x/(x*100), to=x*(x*100), length.out=10))}
-sequences <- sapply(c("U"=12, "X"=0.35, "M"=3), seqFun)
-initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), c1=list(cGrid))))
-getRoot <- function(x){rootSolve::multiroot(f=modelDeterministic, start=x[c("U","X","M")], parms=c(c=x["c1"]))$root}
-rootGrid <- t(apply(initialValues, 1, getRoot))
-rootRange <- apply(rootGrid, 2, range)
+cGrid <- seq(0.00001, 0.005, length.out=10) # a mesh for the c parameter
+seqFun <- function(x){ # function to get a range of state variables to use as initial values
+	do.call('seq', list(from=x/(x*100), to=x*(x*100), length.out=10))
+}
+sequences <- sapply(c("U"=5, "X"=0.35, "M"=2.5), seqFun) # the sequences of starting values for each state variable
+initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), C=list(cGrid)))) # combinations of starting values for all state variables, and for the parameter c
+getRoot <- function(x){ # use rootSolve to get the root of the 3D system
+	rootSolve::multiroot(f=modelDeterministic, start=x[c("U","X","M")], parms=c(C=x["C"]))$root
+}
+rootGrid <- t(apply(initialValues, 1, getRoot)) # get roots for all combinations of parameter c and initial state values
+rootGrid_c <- data.frame(rootGrid, C=cGrid)
+lowerRoot <- aggregate(rootGrid_c[,c("U","X","M")], by=list(C=rootGrid_c[,"C"]), min)
+upperRoot <- aggregate(rootGrid_c[,c("U","X","M")], by=list(C=rootGrid_c[,"C"]), max)
+
+# do some quick plotting
+plotRoots <- function(lR, uR){
+	ylim <- range(c(lR[,"X"], uR[,"X"]))
+	plot(lR[,"C"], lR[,"X"], col="blue", ylim=ylim, xlab="C", ylab="X")
+	points(uR[,"C"], uR[,"X"], col="red")
+	legend('topleft', legend=c('lower root for X', 'upper root for X'), lty=1, col=c("blue","red"))
+}
+plotRoots(lR=lowerRoot, uR=upperRoot) # almost no variation in roots of X for any value of C
 
 
 # Find Roots, but this time hold U constant
 cGrid <- seq(0.00001, 0.005, length.out=10)
 seqFun <- function(x){do.call('seq', list(from=x/(x*100), to=x*(x*100), length.out=10))}
-sequences <- sapply(c("U"=12, "X"=0.35, "M"=3), seqFun)
-initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), c1=list(cGrid))))
-getRoot <- function(x){rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=c(c=x[c("c1","U")]))$root}
+sequences <- sapply(c("U"=5, "X"=0.35, "M"=2.5), seqFun)
+initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), C=list(cGrid))))
+getRoot <- function(x){
+	rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(C=x["C"],U=x["U"]))$root
+}
 rootGrid <- t(apply(initialValues, 1, getRoot))
-rootRange <- apply(rootGrid, 2, range)
+rootGrid_c <- data.frame(rootGrid, U=sequences[,"U"], C=cGrid)
+lowerRoot <- aggregate(rootGrid_c[,c("X","M")], by=list(C=initialValues[,"C"], U=initialValues[,"U"]), min)
+upperRoot <- aggregate(rootGrid_c[,c("X","M")], by=list(C=initialValues[,"C"], U=initialValues[,"U"]), max)
 
+plot(lowerRoot[,"X"], upperRoot[,"X"])
 
 
 
