@@ -71,7 +71,27 @@ modelDeterministic <- function(state, pars=c(C=0.00115), F=14.6, b=0.001, h=0.15
 # = Model Holding Soil P Constant (to solve for water and mud P) =
 # ================================================================
 # In this model, instead of being a dynamic state variable, U is a parameter, just like c
-modelDeterministicXM <- function(state, pars=c(C=0.00115, U=1), b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
+# modelDeterministicXM <- function(state, pars=c(I=0.00115*750), b=0.001, h=0.15, m=2.4, r=0.019, q=8, s=0.7, sigma=0.01, lambda=0.35){
+# 	with(as.list(c(state, pars)),{ # use with() so that I can refer to column names in state and names in pars as variables
+# 		# U <- 14.6/c
+# 		R <- (X^q)/(m^q + X^q) # recycling
+# 		H <- 1 # noise; set to 1, as per appendix
+# 		MRX <- M*R
+# 		rMRX <- r*MRX
+# 		# dU_dt <- F - C*U*H
+# 		dX_dt <- I - (s+h)*X + rMRX # + MRX # water P dynamics
+# 		dM_dt <- s*X - b*M - rMRX # - MRX # sediment P dynamics
+# 		c(dX_dt=dX_dt, dM_dt=dM_dt) # output rate of change for X and M
+# 	}) # end with
+# }
+
+fX <- function(X, q=4, m=2.4){(X^q)/(m^q + X^q)}
+xin <- seq(1,3,length.out=20)
+yout <- fX(xin)
+plot(xin, (yout))
+summary(lm(yout~xin))
+
+modelDeterministicXM <- function(state, pars=c(I=0.00115*750), b=0.001, h=0.252, m=2.4, r=0.019, q=10, s=0.748, sigma=0.01, lambda=0.35){
 	with(as.list(c(state, pars)),{ # use with() so that I can refer to column names in state and names in pars as variables
 		# U <- 14.6/c
 		R <- (X^q)/(m^q + X^q) # recycling
@@ -79,10 +99,13 @@ modelDeterministicXM <- function(state, pars=c(C=0.00115, U=1), b=0.001, h=0.15,
 		MRX <- M*R
 		rMRX <- r*MRX
 		# dU_dt <- F - C*U*H
-		dX_dt <- C*U*H - (s+h)*X + rMRX # + MRX # water P dynamics
+		dX_dt <- I - (s+h)*X + rMRX # + MRX # water P dynamics
 		dM_dt <- s*X - b*M - rMRX # - MRX # sediment P dynamics
 		c(dX_dt=dX_dt, dM_dt=dM_dt) # output rate of change for X and M
 	}) # end with
+}
+mDXM_jac <- function(t, state, pars){
+	modelDeterministicXM(state, pars)
 }
 
 
@@ -91,14 +114,16 @@ modelDeterministicXM <- function(state, pars=c(C=0.00115, U=1), b=0.001, h=0.15,
 # ========================
 nYears <- 300 # number of years for simulation
 dt <- 1/36 # number of time steps per year
-stateMat <- matrix(NA, nrow=nYears/dt, ncol=3, dimnames=list(NULL, c("U","X","M"))) # empty matrix to hold state variables
+# stateMat <- matrix(NA, nrow=nYears/dt, ncol=3, dimnames=list(NULL, c("U","X","M"))) # empty matrix to hold state variables
+stateMat <- matrix(NA, nrow=nYears/dt, ncol=2, dimnames=list(NULL, c("X","M"))) # empty matrix to hold state variables
 
-C <- 0.00115 # nominal fraction of soil P washed into the lake
-stateMat[1,] <- c(1, 0.01, 1) # set initial values for time series simulation
+# C <- 0.00115 # nominal fraction of soil P washed into the lake
+I <- 1.75 #1.5 is a good value to show for simulation, maybe # nominal fraction of soil P washed into the lake
+stateMat[1,] <- c(1.2, 100) # set initial values for time series simulation
 
 for(j in 2:nrow(stateMat)){ # iterate through time steps
 	state <- stateMat[j-1,]
-	dState_dt <- modelDeterministic(state=state, pars=c(c=C))
+	dState_dt <- modelDeterministicXM(state=state, pars=c(I=I))
 	
 	# Runge-Kutta Approximation
 	# Not sure if I did this correctly
@@ -110,60 +135,52 @@ for(j in 2:nrow(stateMat)){ # iterate through time steps
 	# stateMat[j,] <- rkState # runge kutta
 	
 	# Euler Method Approximation
-	dState <- dState_dt*dt
+	dState <- dState_dt*dt # + rnorm(2)*dt
 	eulerState <- state + dState
 	stateMat[j,] <- eulerState # euler
 	
 }
-par(mfrow=c(3,1), mar=c(1.85,1.85,0.5,0.5), mgp=c(1,0.25,0), tcl=-0.25, ps=8)
-plot(ts(log10(stateMat[,"U"]), freq=1/dt), ylab="log10(U), soil P")
+par(mfrow=c(2,1), mar=c(1.85,1.85,0.5,0.5), mgp=c(1,0.25,0), tcl=-0.25, ps=8)
 plot(ts(stateMat[,"X"], freq=1/dt), ylab="X, water P")
 plot(ts(stateMat[,"M"], freq=1/dt), ylab="M, sediment P")
 stateMat[nrow(stateMat),]
 
 
-# =======================================================================================
-# = Try to Calculate Roots across Gradient of c and Grid of State Variables U, X, and M =
-# =======================================================================================
-# Find roots, U, X and M are dynamic
-cGrid <- seq(0.00001, 0.005, length.out=10) # a mesh for the c parameter
-seqFun <- function(x){ # function to get a range of state variables to use as initial values
-	do.call('seq', list(from=x/(x*100), to=x*(x*100), length.out=10))
-}
-sequences <- sapply(c("U"=5, "X"=0.35, "M"=2.5), seqFun) # the sequences of starting values for each state variable
-initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), C=list(cGrid)))) # combinations of starting values for all state variables, and for the parameter c
-getRoot <- function(x){ # use rootSolve to get the root of the 3D system
-	rootSolve::multiroot(f=modelDeterministic, start=x[c("U","X","M")], parms=c(C=x["C"]))$root
-}
-rootGrid <- t(apply(initialValues, 1, getRoot)) # get roots for all combinations of parameter c and initial state values
-rootGrid_c <- data.frame(rootGrid, C=cGrid)
-lowerRoot <- aggregate(rootGrid_c[,c("U","X","M")], by=list(C=rootGrid_c[,"C"]), min)
-upperRoot <- aggregate(rootGrid_c[,c("U","X","M")], by=list(C=rootGrid_c[,"C"]), max)
+# Find Roots
+gridN <- 100
+Igrid <- seq(0.25, 1.75, length.out=gridN)
+Xgrid <- seq(0.05, 8, length.out=2)
+Mgrid <- seq(10, 300, length.out=2)
 
-# do some quick plotting
-plotRoots <- function(lR, uR){
-	ylim <- range(c(lR[,"X"], uR[,"X"]))
-	plot(lR[,"C"], lR[,"X"], col="blue", ylim=ylim, xlab="C", ylab="X")
-	points(uR[,"C"], uR[,"X"], col="red")
-	legend('topleft', legend=c('lower root for X', 'upper root for X'), lty=1, col=c("blue","red"))
-}
-plotRoots(lR=lowerRoot, uR=upperRoot) # almost no variation in roots of X for any value of C
+sequences <- data.frame(I=Igrid, X=Xgrid, M=Mgrid)
+initialValues <- expand.grid(I=Igrid, X=Xgrid, M=Mgrid)
+initialValues <- initialValues[order(initialValues[,"I"]),]
+rownames(initialValues) <- NULL
 
-
-# Find Roots, but this time hold U constant
-cGrid <- seq(0.00001, 0.005, length.out=10)
-seqFun <- function(x){do.call('seq', list(from=x/(x*100), to=x*(x*100), length.out=10))}
-sequences <- sapply(c("U"=5, "X"=0.35, "M"=2.5), seqFun)
-initialValues <- data.matrix(expand.grid(c(apply(sequences, 2, as.list), C=list(cGrid))))
 getRoot <- function(x){
-	rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(C=x["C"],U=x["U"]))$root
+	tryCatch({
+		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=1E2)$root
+	}, warning=function(w)c(X=NA,M=NA))
 }
-rootGrid <- t(apply(initialValues, 1, getRoot))
-rootGrid_c <- data.frame(rootGrid, U=sequences[,"U"], C=cGrid)
-lowerRoot <- aggregate(rootGrid_c[,c("X","M")], by=list(C=initialValues[,"C"], U=initialValues[,"U"]), min)
-upperRoot <- aggregate(rootGrid_c[,c("X","M")], by=list(C=initialValues[,"C"], U=initialValues[,"U"]), max)
 
-plot(lowerRoot[,"X"], upperRoot[,"X"])
+rootGrid <- t(apply(initialValues, 1, getRoot))
+rootGrid_I <- data.matrix(data.frame(I=initialValues[,"I"], init=initialValues[,c("X","M")], rootGrid))
+rootGrid_I <- rootGrid_I[order(rootGrid_I[,"I"]),]
+
+getEigs <- function(x){
+	jac <- rootSolve::jacobian.full(y=x[c("X","M")], func=mDXM_jac, parms=x["I"])
+	eigen(jac)$values
+}
+rootGrid_I_comp <- data.matrix(rootGrid_I[complete.cases(rootGrid_I),])
+eigGrid <- t(apply(rootGrid_I_comp,1,getEigs))
+eigGrid_I <- data.frame(rootGrid_I_comp, eigGrid)
+
+par(mar=c(2,2,0.5,2), mgp=c(1,0.25,0), tcl=-0.25, ps=8)
+plot(rootGrid_I[,"I"], rootGrid_I[,"X"], col="blue", type='p', xlab="P Loading (g/m^2)", ylab="Water P (g/ m^2)")
+par(new=TRUE)
+plot(rootGrid_I[,"I"], rootGrid_I[,"M"], col="red", xaxt='n', yaxt='n', type='p', xlab="", ylab="")
+axis(side=4)
+
 
 
 
