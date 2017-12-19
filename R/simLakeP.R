@@ -85,12 +85,6 @@ modelDeterministic <- function(state, pars=c(C=0.00115), F=14.6, b=0.001, h=0.15
 # 	}) # end with
 # }
 
-fX <- function(X, q=4, m=2.4){(X^q)/(m^q + X^q)}
-xin <- seq(1,3,length.out=20)
-yout <- fX(xin)
-plot(xin, (yout))
-summary(lm(yout~xin))
-
 modelDeterministicXM <- function(state, pars=c(I=0.00115*750), b=0.001, h=0.252, m=2.4, r=0.019, q=10, s=0.748, sigma=0.01, lambda=0.35){
 	with(as.list(c(state, pars)),{ # use with() so that I can refer to column names in state and names in pars as variables
 		# U <- 14.6/c
