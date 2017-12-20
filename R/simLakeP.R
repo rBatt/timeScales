@@ -143,11 +143,12 @@ stateMat[nrow(stateMat),]
 # Find Roots
 gridN <- 100
 Igrid <- seq(0.25, 1.75, length.out=gridN)
-Xgrid <- seq(0.05, 8, length.out=2)
-Mgrid <- seq(10, 300, length.out=2)
+Xgrid <- seq(0.05, 8, length.out=gridN)
+Mgrid <- 400 #seq(10, 800, length.out=gridN/2)
 
 sequences <- data.frame(I=Igrid, X=Xgrid, M=Mgrid)
 initialValues <- expand.grid(I=Igrid, X=Xgrid, M=Mgrid)
+# startMudP <-
 initialValues <- initialValues[order(initialValues[,"I"]),]
 rownames(initialValues) <- NULL
 
@@ -169,10 +170,16 @@ rootGrid_I_comp <- data.matrix(rootGrid_I[complete.cases(rootGrid_I),])
 eigGrid <- t(apply(rootGrid_I_comp,1,getEigs))
 eigGrid_I <- data.frame(rootGrid_I_comp, eigGrid)
 
+princEigPos <- Re(eigGrid_I[,c("X1")]) > 0
+secEigPos <- Re(eigGrid_I[,c("X2")]) > 0
+eitherEigPos <- princEigPos | secEigPos
+eigPCH <- rep(20, nrow(eigGrid_I))
+eigPCH[eitherEigPos] <- 21
+
 par(mar=c(2,2,0.5,2), mgp=c(1,0.25,0), tcl=-0.25, ps=8)
-plot(rootGrid_I[,"I"], rootGrid_I[,"X"], col="blue", type='p', xlab="P Loading (g/m^2)", ylab="Water P (g/ m^2)")
+plot(eigGrid_I[,"I"], eigGrid_I[,"X"], col="blue", type='p', xlab="P Loading (g/m^2)", ylab="Water P (g/ m^2)", pch=eigPCH)
 par(new=TRUE)
-plot(rootGrid_I[,"I"], rootGrid_I[,"M"], col="red", xaxt='n', yaxt='n', type='p', xlab="", ylab="")
+plot(eigGrid_I[,"I"], eigGrid_I[,"M"], col="red", xaxt='n', yaxt='n', type='p', xlab="", ylab="", pch=eigPCH)
 axis(side=4)
 
 
