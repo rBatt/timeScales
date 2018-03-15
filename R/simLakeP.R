@@ -235,8 +235,8 @@ axis(side=4)
 
 
 # ---- show point migration towards stability ----
-nTime <- 5000
-dT <- 1/3
+nTime <- 250
+dT <- 1/4
 stateArray <- array(dim=c(nrow(eigGrid_I), 3, nTime), dimnames=list(NULL,variable=c("I","X","M"),time=c()))
 dStateArray <- stateArray
 stateArray[,,1] <- data.matrix(eigGrid_I[,c("I","init.X","init.M")])
@@ -286,7 +286,7 @@ unlink(base_file, rec=TRUE)
 
 dev.new()
 par(mfrow=c(3,3), mar=c(2,2,0.5,0.5), ps=8, cex=1, mgp=c(1, 0.25, 0), tcl=-0.2)
-time_seq <- c(1, 5, 10, 100, 250, 500, 1000, 2500, 5000)
+time_seq <- round(seq(from=1, to=nTime, length.out=9))
 for(ts in 1:length(time_seq)){
 	plot(stateArray[,"X",time_seq[ts]], stateArray[,"M",time_seq[ts]], xlab="X (water P)", ylab="M (mud P)")
 }
@@ -299,6 +299,7 @@ i1 <- uniqueI[which.min(abs(uniqueI-1.5))]
 state_i1_0 <- stateArray[dStateArray[,"I",1]==i1,"X",1]
 state_i1 <- state_i1_0[order(state_i1_0)]
 dState_i1 <- dStateArray[dStateArray[,"I",1]==i1,"X",1][order(state_i1_0)]
+dev.new()
 plot(state_i1, dState_i1, type='l')
 abline(h=0)
 abline(v=c(0.5, 2.15), lty='dashed')
