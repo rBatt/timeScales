@@ -147,7 +147,7 @@ getRoot <- function(x){
 getRoot_df <- function(initialValues){
 	rootGrid <- t(apply(initialValues, 1, getRoot))
 	rootGrid_I <- data.matrix(data.frame(I=initialValues[,"I"], init=initialValues[,c("X","M")], rootGrid))
-	rootGrid_I <- rootGrid_I[order(rootGrid_I[,"I"]),]
+	rootGrid_I <- rootGrid_I[order(rootGrid_I[,"I"]),] # i should really remove this ...
 	return(rootGrid_I)
 }
 
