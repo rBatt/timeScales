@@ -23,4 +23,6 @@ RoxygenNote: 5.0.1
 Imports: stats,
     methods,
     zoo,
-    forecast
+    forecast,
+    rbLib,
+    rootSolve

@@ -7,4 +7,5 @@ update_dependencies <- function(){
 	devtools::use_package("methods", type="Imports")
 	devtools::use_package("zoo", type="Imports")
 	devtools::use_package("forecast", type="Imports")	
+	devtools::use_package("rootSolve", type="Imports")	
 }
