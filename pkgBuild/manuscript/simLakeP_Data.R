@@ -56,7 +56,6 @@ agg_sos2 <- function(aggsteps){
 }
 lakeP_agg <- lapply(agg_steps, FUN=agg_sos2)
 names(lakeP_agg) <- paste0("agg", agg_steps)
-simAC <- roll_ac.sos(lakeP_agg, window_elapsed=steps_per_window, vars="X", lakes="Sim", DETREND=FALSE, by=window_by)
 plotac_simp <- function(X, ...){
 	X <- copy(X)
 	ylim <- X[,range(y, na.rm=TRUE)]
@@ -72,9 +71,19 @@ plotac_simp <- function(X, ...){
 	
 	invisible()
 }
-dev.new()
-par(mfrow=c(4,1))
+
+simAC <- roll_ac.sos(lakeP_agg, window_elapsed=steps_per_window, vars="X", lakes="Sim", DETREND=TRUE, by=window_by)
+png("~/Desktop/simP_rollingAC_Detrend.png", width=3.5, height=5.5, res=150, units='in')
+par(mfrow=c(4,1), mar=c(2,2,0.5,0.5), ps=8, mgp=c(1,0.25, 0), tcl=-0.15)
 mapply(plotac_simp, simAC)
+dev.off()
+
+simAC_noDetrend <- roll_ac.sos(lakeP_agg, window_elapsed=steps_per_window, vars="X", lakes="Sim", DETREND=FALSE, by=window_by)
+png("~/Desktop/simP_rollingAC_noDetrend.png", width=3.5, height=5.5, res=150, units='in')
+par(mfrow=c(4,1), mar=c(2,2,0.5,0.5), ps=8, mgp=c(1,0.25, 0), tcl=-0.15)
+mapply(plotac_simp, simAC_noDetrend)
+dev.off()
+
 
 
 
@@ -95,8 +104,11 @@ rootOfSim <- getRoot_df(lakeP_df)
 rootEigs <- getEigs_df(rootOfSim[,c("I","X","M")])
 print(rootEigs[which(Re(rootEigs$X1)>=0)[1],], digits=10) # critical value based on when eig first crosses 0
 print(rootEigs[which.max(Re(rootEigs$X1)),], digits=10) # critical value based on maximum eig
-dev.new()
-plot(rootEigs$I, Re(rootEigs$X1), type='l') # plot of eigenvalues across values of I (loading)
+
+png("~/Desktop/simP_eigenvalues.png", width=3.5, height=3.5, res=150, units='in')
+par(mar=c(2,2,0.5,0.5), ps=8, mgp=c(1,0.25, 0), tcl=-0.15)
+plot(rootEigs$I, Re(rootEigs$X1), xlab="Nutrient Loading", ylab="Eigenvalue", type='l') # plot of eigenvalues across values of I (loading)
+dev.off()
 
 
 lakeP[,c("root.X","root.M", "X1", "X2"):=list(rootEigs$X, rootEigs$M, rootEigs$X1, rootEigs$X2)]
@@ -105,10 +117,11 @@ lakeP[,c("root.X","root.M", "X1", "X2"):=list(rootEigs$X, rootEigs$M, rootEigs$X
 # hmm, the system is very far from equilibrium
 # it's especially strange how the simulation P way overshoots the equilibrium value
 # in other simulations, i don't recall
-dev.new()
-par(mfrow=c(2,1))
-lakeP[,plot(as.numeric(doy), X, type='l', ylim=range(c(X, root.X), na.rm=TRUE))]
+png("~/Desktop/simP_simValues_trueEquilibria.png", width=3.5, height=3.5, res=150, units='in')
+par(mfrow=c(2,1), mar=c(2,2,0.5,0.5), ps=8, mgp=c(1,0.25, 0), tcl=-0.15)
+lakeP[,plot(as.numeric(doy), X, type='l', ylim=range(c(X, root.X), na.rm=TRUE), xlab="Day", ylab="Water P")]
 lakeP[,lines(as.numeric(doy), root.X, lty=2, col='forestgreen')]
-lakeP[,plot(as.numeric(doy), M, type='l', ylim=range(c(M, root.M), na.rm=TRUE))]
+lakeP[,plot(as.numeric(doy), M, type='l', ylim=range(c(M, root.M), na.rm=TRUE), xlab="Day", ylab="Mud P")]
 lakeP[,lines(as.numeric(doy), root.M, lty=2, col='forestgreen')]
+dev.off()
 
