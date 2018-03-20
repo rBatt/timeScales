@@ -1,20 +1,35 @@
+win_days <- 28 # window size in days covered
+agg_steps <- c(1, 12, 288, 288*2) # step sizes for aggregation
+lakes <- c("Peter","Paul") # can be vector; lakes to analyze (Paul, Peter)
+vars <- "chla" #"bga" # can be vector; variables to analyze (wtr, bga, chla)
+
+
+steps_per_day <- 60*24/(5 * agg_steps) # obs per day = (60 min / 1 hr) * (24 hrs / 1 day) * (1 obs / 5*n min)
+steps_per_window <- steps_per_day*win_days # steps per window = (n steps / 1 day) * (n days / 1 window)
+acf_lag.max <- steps_per_window[1]/14 # 2 days is /14
+window_by <- pmax(1, steps_per_day/(4)) # the denominator is number of window starts per day; if trying to increment window by less than the resolution of the time series, just increment by 1 #c(48, 4, 2, 1)
 
 
 # ========================
 # = Simulate Time Series =
 # ========================
+library(timeScales)
+library(rootSolve)
+
 nYears <- 200 # number of years for simulation
 dt <- 1/(288) # number of time steps per year
 # stateMat <- matrix(NA, nrow=nYears/dt, ncol=3, dimnames=list(NULL, c("U","X","M"))) # empty matrix to hold state variables
 stateMat <- matrix(NA, nrow=nYears/dt, ncol=2, dimnames=list(NULL, c("X","M"))) # empty matrix to hold state variables
 
 # C <- 0.00115 # nominal fraction of soil P washed into the lake
-I <- seq(from=1, to=1.42, length.out=nYears/dt) #0.25 #1.5 is a good value to show for simulation, maybe # nominal fraction of soil P washed into the lake; i think the critical point is ~1.34
+# I <- seq(from=1.2, to=1.4, length.out=nYears/dt) #0.25 #1.5 is a good value to show for simulation, maybe # nominal fraction of soil P washed into the lake; i think the critical point is at just over 1.336
+I <- rep(seq(from=1.0, to=1.33, length.out=nYears), each=1/dt)
 stateMat[1,] <- c(1.2, 200) # set initial values for time series simulation
 stateMat[1,] <- getRoot(c(I=I[1], stateMat[1,"X"], stateMat[1,"M"])) # make the initial values at equilibrium
 
 for(j in 2:nrow(stateMat)){ # iterate through time steps
 	state <- stateMat[j-1,]
+	# if((j%%(288))==0){state <- getRoot(c(state, I=I[j-1]))} # this was intended to tie the system to the equilibrium, but don't do this, because it messes up the statistics. It'd be okay if set to equilibrium, simulated at constant I, and calculated ar() for that period of constant I. But changing I within a window of data for which ar() is calculated, while also abruptly setting to equilibrium within that same window ... doing that really messes stuff up. It creates decreasing autocorrelation at some time scales ... I think because of the additional jumps (depending how often it is tied back to root).
 	dState_dt <- modelDeterministicXM(state=state, pars=c(I=I[j]))
 	
 	# Runge-Kutta Approximation
@@ -27,7 +42,7 @@ for(j in 2:nrow(stateMat)){ # iterate through time steps
 	# stateMat[j,] <- rkState # runge kutta
 	
 	# Euler Method Approximation
-	dState <- dState_dt*dt + rnorm(2, sd=c(0.025, 0.05))*dt
+	dState <- dState_dt*dt + rnorm(2, sd=c(0.05, 1))*dt + c(0.00025, 0.005)*cos(2*pi*dt*j)*(dt*2*pi)
 	eulerState <- state + dState
 	stateMat[j,] <- eulerState # euler
 	
@@ -46,9 +61,9 @@ lakePm <- melt(lakeP, id.vars=c("lake","doy"))#[variable%in%vars & lake%in%lakes
 # ==========================
 # = Test Stats on Data Set =
 # ==========================
-# set_ts <- function(y, x, freq=288){
-# 	ts(y, freq=288, start=x)
-# }
+set_ts <- function(y, x, freq=288){
+	ts(y, freq=288, start=x)
+}
 lakePm[, value:=set_ts(y=log(value), x=doy[1]), by=c("lake","variable")]
 agg_sos2 <- function(aggsteps){
 	out <- lakePm[,j={agg_ts(y=value, x=doy, width=aggsteps)},by=c("lake","variable")]
