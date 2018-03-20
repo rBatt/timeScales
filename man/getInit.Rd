@@ -24,7 +24,7 @@ getInit(gridN = 100, Irange = c(0.25, 1.75), Xrange = c(0.05, 8),
 \item{Mn}{number of values for M; default is set to gridN}
 }
 \value{
-a data.frame of
+a data.frame of initial values
 }
 \description{
 Get Initial Values for Eutrohpication Model

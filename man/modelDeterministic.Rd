@@ -31,6 +31,9 @@ modelDeterministic(state, pars = c(C = 0.00115), F = 14.6, b = 0.001,
 
 \item{C}{coefficient for transfer of soil phosphorus to the lake}
 }
+\value{
+change of state variables
+}
 \description{
 Eutrophication Bifurcation
 Model of lake eutrophication via elevated phosphorus loading. When as phosphorus loading increases, a fold bifurcation is reached, and the system switches into a eutrophic state from a oligotrophic state.

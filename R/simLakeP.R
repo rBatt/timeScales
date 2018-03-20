@@ -22,7 +22,8 @@
 # @param dW a white noise process with mean zero and variance dt
 #' @param m in the recycling function, the value of X at which recycling is half the maximum rate
 #' @param q in the recycling function, the exponent q determines the slope of R(X) near m
-
+#' @return change of state variables
+#' @export
 
 # =============================
 # = Notes on Parameter Values =
@@ -116,7 +117,8 @@ mDXM_jac <- function(t, state, pars){
 #' @param In number of values for I; default is set to gridN
 #' @param Xn number of values for X; default is set to gridN
 #' @param Mn number of values for M; default is set to gridN
-#' @return a data.frame of 
+#' @return a data.frame of initial values
+#' @export
 getInit <- function(gridN=100, Irange=c(0.25, 1.75), Xrange=c(0.05, 8), Mrange=c(400, 400), In=gridN, Xn=gridN, Mn=gridN){
 	# gridN <- 100
 	Igrid <- seq(Irange[1], Irange[2], length.out=In)
@@ -135,6 +137,7 @@ getInit <- function(gridN=100, Irange=c(0.25, 1.75), Xrange=c(0.05, 8), Mrange=c
 #' Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)
 #' @param x a vector of length 3 with names X (water P), M (mud P), and I (P loading)
 #' @return numeric vector with roots
+#' @export
 getRoot <- function(x){
 	tryCatch({
 		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=1E2)$root
@@ -157,6 +160,7 @@ getRoot_df <- function(initialValues){
 #' Given the rate of change of state variables (water and mud P) and the input P, returns the eigenvalues
 #' @param x a named vector of length 3 (X, M, I), as in \code{\link{modelDeterministicXM}}
 #' @return eigenvalues
+#' @export
 getEigs <- function(x){
 	if(any(is.na(x))){return(c(NA,NA))}
 	jac <- rootSolve::jacobian.full(y=x[c("X","M")], func=mDXM_jac, parms=x["I"])
