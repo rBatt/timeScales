@@ -23,6 +23,8 @@ detrend <- function(x, time=1:length(x)){
 #' 
 #' @details model to be used for detrending is fit via OLS, the best model is selected by AICc. See \code{\link{interaction_xreg}} for the construction of the interaction matrix. Not all model combinations are considered just all combinations of the orders of polynomial and Fourier series and interactions of the Fourier series with main-effect polynomials; the order of the interaction will never be greater than either of the orders of the polynomial or Fourier. Missing values (NA's) are first linearly interpolated.
 #' 
+#' @note \code{max_fourier} will be set to 0 if the \code{\link{frequency}} of the time series is not at least 4. As a consequence, in this situation \code{max_interaction} will also be set to 0.
+#' 
 #' @return detrended time series
 #' @seealso \code{\link{detrend}}\code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} \code{\link{fill_na}}
 #' @export
@@ -42,6 +44,10 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	# fourier matrix
 	if(max_fourier > 0){
 		stopifnot(stats::is.ts(x))
+	}
+	if(!frequency(x)>=4){
+		max_fourier <- 0
+		max_interaction <- 0
 	}
 	full_fourier <- forecast::fourier(x, max_fourier)
 	
@@ -88,7 +94,7 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	
 	# combinations of model parameters in terms of orders of poly, fourier, and interaction
 	pfi_combos0 <- expand.grid(p=1:max_poly, f=0:max_fourier, i=0:max_interaction)
-	limit_interactionOrder <- pfi_combos0[,3] <= pfi_combos0[,1] #& pfi_combos0[,3] <= pfi_combos0[,2]
+	limit_interactionOrder <- (pfi_combos0[,3] <= pfi_combos0[,1]) & (pmin(pfi_combos0[,3], 1) <= pfi_combos0[,2]) # the second piece of logic is intended to avoid an interaction when no fourier terms are selected #& pfi_combos0[,3] <= pfi_combos0[,2]
 	pfi_combos <- pfi_combos0[limit_interactionOrder,]
 	
 	# function to get model AICc given a row index (m) of the matrix (pfi_combos) of the possible combinations of model orders 
