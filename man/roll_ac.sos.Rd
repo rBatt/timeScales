@@ -5,7 +5,8 @@
 \title{Rolling Autocorrelation, SOS}
 \usage{
 roll_ac.sos(X, window_elapsed, by = 1, n = 1, phase = 1, vars, lakes,
-  subWindow = FALSE, subStat = FALSE, DETREND = FALSE)
+  subWindow = FALSE, subStat = FALSE, DETREND = FALSE,
+  save_output = FALSE)
 }
 \arguments{
 \item{X}{a data.table of lake observations, or possibly list of data.tables. Should have columns named "variable", "lake", "y", and "x". See Details.}
@@ -27,6 +28,8 @@ roll_ac.sos(X, window_elapsed, by = 1, n = 1, phase = 1, vars, lakes,
 \item{subStat}{logical, should the statistic be calculated for a subset of the windowed data?}
 
 \item{DETREND}{logical, detrend or no? Pass to \code{\link{roll_ts}}. Also see \code{\link{detrendR}}.}
+
+\item{save_output}{logical, save detrending output to desktop?}
 }
 \value{
 list or list of data.tables containing rolling window statistic

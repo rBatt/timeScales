@@ -4,7 +4,8 @@
 \alias{roll_ts}
 \title{Roll TS}
 \usage{
-roll_ts(y, width = 288, by = 1, FUN = mean, x, DETREND = FALSE, ...)
+roll_ts(y, width = 288, by = 1, FUN = mean, x, DETREND = FALSE,
+  save_output = FALSE, ...)
 }
 \arguments{
 \item{y}{numeric vector representing time series}
@@ -19,9 +20,11 @@ roll_ts(y, width = 288, by = 1, FUN = mean, x, DETREND = FALSE, ...)
 
 \item{DETREND}{logical, detrend or no? see \code{\link{detrendR}}}
 
-\item{...}{additional arguments to be passed to \code{FUN}
+\item{save_output}{logical, save detrending output to desktop?
 
 The function performs a backward-looking rolling window on a numeric vector. Makes use of the \code{\link{embed}} function, which might be slow for long windows (many observations per window). Internally also makes use of \code{\link{sub_embed}}.}
+
+\item{...}{additional arguments to be passed to \code{FUN}}
 }
 \value{
 a vector with each value being the result of applying \code{FUN} to a window.
