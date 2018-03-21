@@ -111,7 +111,7 @@ sosm <- melt(sos, id.vars=c("year","lake","doy","datetime"))[variable%in%vars & 
 
 #      make measured values of class "ts" with frequency = 288 samples per day ----
 set_ts <- function(y, x, freq=288){
-	ts(y, freq=288, start=x)
+	ts(y, freq=freq, start=x)
 }
 sosm[, value:=set_ts(y=log(value), x=doy[1]), by=c("year","lake","variable")]
 
