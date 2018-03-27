@@ -8,7 +8,7 @@ Description: Regime shifts are abrupt changes in complex systems that are
     might be sensitive to the time scale of the observations from which they are
     calculated. This pacakge uses a data set of high-frequency observations made
     during an experimentally-induced regime shift (algal bloom in a lake) to
-    explore the sensitivity of these statistics to the time scale of observation.
+    explore the sensitivity of these statistics to the time scale of observation. This sensitivity is also explored using ecological simulations.
     Furthermore, the analysis seeks to find an approach to calculating these
     statistics that will provide a warning that is robust to time scale, either by
     identifying a reliable time scale or by using a statistic that is generically
@@ -25,4 +25,6 @@ Imports: stats,
     zoo,
     forecast,
     rbLib,
-    rootSolve
+    rootSolve,
+    R2jags,
+    fields

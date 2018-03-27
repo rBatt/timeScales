@@ -29,6 +29,9 @@ Detrending of time series using polynomial trend, Fourier series, and their inte
 \details{
 model to be used for detrending is fit via OLS, the best model is selected by AICc. See \code{\link{interaction_xreg}} for the construction of the interaction matrix. Not all model combinations are considered just all combinations of the orders of polynomial and Fourier series and interactions of the Fourier series with main-effect polynomials; the order of the interaction will never be greater than either of the orders of the polynomial or Fourier. Missing values (NA's) are first linearly interpolated.
 }
+\note{
+\code{max_fourier} will be set to 0 if the \code{\link{frequency}} of the time series is not at least 4. As a consequence, in this situation \code{max_interaction} will also be set to 0.
+}
 \seealso{
 \code{\link{detrend}}\code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} \code{\link{fill_na}}
 }
