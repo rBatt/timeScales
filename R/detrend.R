@@ -45,7 +45,7 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	if(max_fourier > 0){
 		stopifnot(stats::is.ts(x))
 	}
-	if(!frequency(x)>=4){
+	if(!stats::frequency(x)>=4){
 		max_fourier <- 0
 		max_interaction <- 0
 	}
@@ -118,9 +118,9 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	X <- do.call(get_mm, as.list(pfi_combos[which.min(AICcs),]))
 	if(save_output){
 		if(file.exists("~/Desktop/detrend_output.csv")){
-			write.csv(pfi_combos[which.min(AICcs),], file="~/Desktop/detrend_output.csv", append=TRUE)
+			utils::write.csv(pfi_combos[which.min(AICcs),], file="~/Desktop/detrend_output.csv", append=TRUE)
 		}else{
-			write.csv(pfi_combos[which.min(AICcs),], file="~/Desktop/detrend_output.csv", append=FALSE)
+			utils::write.csv(pfi_combos[which.min(AICcs),], file="~/Desktop/detrend_output.csv", append=FALSE)
 		}
 	}
 	if(returnType=="modelMatrix"){
