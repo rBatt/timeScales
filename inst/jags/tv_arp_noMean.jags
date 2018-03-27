@@ -1,0 +1,76 @@
+
+# =====================
+# = Model Description =
+# =====================
+# observation:
+# y_t = z_t + v_t
+
+# process:
+# z_t = Phi_t*BpZ_t + c + w_t
+
+# Bp is backshift of order p:
+# p = 2
+# BpZ_t = [z_{t-1}, z_{t-2}]^-1
+
+# Parameters are time-varying:
+# Phi_t = Phi_{t-1} + epsilon_t
+
+# ===================
+# = Input Variables =
+# ===================
+# n, the number of observations in the time series
+# nP, the order of the AR process
+# np1, nP+1
+# Y, observations
+
+# =========
+# = Model =
+# =========
+model{
+	# ---- Error Terms ----
+	tau_v ~ dgamma(0.1,0.1) # observation
+	tau_w ~ dgamma(0.1,0.1) # process
+	# for(p in 1:nP){
+# 		tau_eps[p] ~ dgamma(0.1,0.1) # time-varying for ar coefficient
+# 	}
+	tau_eps ~ dgamma(0.1,0.1) # time-varying for ar coefficient
+	tau_xi ~ dgamma(0.001,0.001) # time-varying for constant
+	
+	# ---- time series mean ----
+	C ~ dnorm(0, tau_xi)
+
+	# ---- Time-varying parameters ----
+	for(p in 1:nP){
+		for(i in 1:nP){
+			Phi[i, p] ~ dnorm(0, 100) #dunif(-1.0, 1.0)
+		}
+	}
+	for(i in nP1:n){
+		for(p in 1:nP){
+			Phi[i,p] ~ dnorm(Phi[i-1,p], tau_eps) T(-1.0, 1.0) # the T() truncates the normal at -1, 1 (to bound AR coeff)
+		}
+	}
+
+	# ---- Process and Observation Loop ----
+	for(i in 1:nP){ # not sure which way to go about this ...
+		# Z[i] <- Y[i] # just set true values to observed to initiate
+		Z[i] ~ dnorm(Y[i], 0.1) # set true to be close to observed, but actually estimating true values
+		# Z[i] ~ dnorm(0, 0.01) # estimate true values, but don't necessarily say they are close to observed
+	}
+	
+	for(i in nP1:n){
+		for(p in 1:nP){
+			BpZ[p, i] <- Z[i-p] - C # set up lagged state vector as auto-predictors
+		}
+		Z[i] ~ dnorm(Phi[i,1:nP]%*%BpZ[1:nP,i]+C, tau_w) # predict 1 step ahead using AR(p) + C + noise
+	}
+
+	# ---- Likelihood ----
+	for(i in nP1:n){
+		Y[i] ~ dnorm(Z[i], tau_v)
+	}
+
+} # end model
+
+
+

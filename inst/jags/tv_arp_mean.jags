@@ -1,0 +1,92 @@
+
+# =====================
+# = Model Description =
+# =====================
+# observation:
+# y_t = z_t + v_t
+
+# process:
+# z_t = Phi_t*BpZ_t + c_t + w_t
+
+# Bp is backshift of order p:
+# p = 2
+# BpZ_t = [z_{t-1}, z_{t-2}]^-1
+
+# Parameters are time-varying:
+# Phi_t = Phi_{t-1} + epsilon_t
+# C_t = C_{t-1} + xi_t
+
+# =======================
+# = Latex for Equations =
+# =======================
+# \begin{array}{ll}
+# y_t = z_t + v_t     &v\sim \mathcal{N}(0, 1/\tau_v) \\
+# z_t = C_t + \Phi_t\bold{B}^p(Z-C) + \omega_t     &\omega \sim \mathcal{N}(0,1/\tau_{\omega}) \\
+# C_t=C_{t-1}+\xi_t & \xi \sim \mathcal{N}(0,1/\tau_\xi)\\
+# \Phi_t = \Phi_{t-1} + \varepsilon_t &\varepsilon \sim \mathcal{N}([0,\dots,0], \Sigma_\Phi)\\[0.5em]
+# &\Sigma_\Phi = \begin{bmatrix} \sigma^2_{\varphi_1}& \dots& 0\\ \vdots& \ddots& \vdots\\ 0& \dots& \sigma^2_{\varphi_p} \end{bmatrix}\\[2em]
+# \text{if }  p=2: \begin{cases}
+# \Phi_t=\begin{bmatrix} \varphi_{1,t}, \varphi_{2,t} \end{bmatrix}\\[0.5em]
+# \bold{B}^p(Z)=\begin{bmatrix}Z_{t-1}\\Z_{t-2} \end{bmatrix}\\[1em]
+# \bold{B}^p(C)=\begin{bmatrix}C_{t-1}\\C_{t-2} \end{bmatrix}\\
+# \end{cases}\\
+# \end{array}
+
+
+# ===================
+# = Input Variables =
+# ===================
+# n, the number of observations in the time series
+# nP, the order of the AR process
+# Y, observations
+
+# =========
+# = Model =
+# =========
+model{
+	# ---- Error Terms ----
+	tau_v ~ dgamma(0.1,0.1) # observation
+	tau_w ~ dgamma(0.1,0.1) # process
+	# for(p in 1:nP){
+# 		tau_eps[p] ~ dgamma(0.1,0.1) # time-varying for ar coefficient
+# 	}
+	tau_eps ~ dgamma(0.1,0.1) # precision of stochastic term for time-varying ar() coeff
+	tau_xi ~ dgamma(0.001,0.001) # precision of stochastic term for time-varying for constant
+
+	# ---- Time-varying parameters ----
+	for(p in 1:nP){
+		for(i in 1:nP){
+			Phi[i, p] ~ dnorm(0, 100) #dunif(-1.0, 1.0)
+		}
+		C[p] ~ dnorm(0, tau_xi)
+	}
+	for(i in nP1:n){
+		for(p in 1:nP){
+			Phi[i,p] ~ dnorm(Phi[i-1,p], tau_eps) T(-1.0, 1.0) # the T() truncates the normal at -1, 1 (to bound AR coeff)
+		}
+		C[i] ~ dnorm(C[i-1], tau_xi)
+	}
+
+	# ---- Process and Observation Loop ----
+	for(i in 1:nP){ # not sure which way to go about this ...
+		# Z[i] <- Y[i] # just set true values to observed to initiate
+		Z[i] ~ dnorm(Y[i], 0.1) # set true to be close to observed, but actually estimating true values
+		# Z[i] ~ dnorm(0, 0.01) # estimate true values, but don't necessarily say they are close to observed
+	}
+	
+	for(i in nP1:n){
+		for(p in 1:nP){
+			BpZ[p, i] <- Z[i-p] - C[i-p] # set up lagged state vector as auto-predictors
+		}
+		Z[i] ~ dnorm(Phi[i,1:nP]%*%BpZ[1:nP,i]+C[i], tau_w) # predict 1 step ahead using AR(p) + C + noise
+	}
+
+	# ---- Likelihood ----
+	for(i in nP1:n){
+		Y[i] ~ dnorm(Z[i], tau_v)
+	}
+
+} # end model
+
+
+
