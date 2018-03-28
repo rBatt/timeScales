@@ -53,7 +53,7 @@ tvarss <- function(Y, nP=1, niter=1E3, tvMean=FALSE, parallel=FALSE, oType=c("ja
 	
 	if(parallel){
 		out <- R2jags::jags.parallel(
-			data=names(inputData), parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter, export_obj_names=c("param_names","model_file")
+			data=names(inputData), parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter, export_obj_names=c("param_names","model_file", "niter"), envir = environment()
 		)
 	}else{
 		out <- R2jags::jags(data=inputData, parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter)
@@ -75,8 +75,8 @@ tvarss <- function(Y, nP=1, niter=1E3, tvMean=FALSE, parallel=FALSE, oType=c("ja
 #' @return an object of class 'tvarss'
 #' @export
 as.tvarss <- function(x){
-	if(class(x)=="tvarss"){return(x)}
-	stopifnot(class(x)%in%c("rjags"))
+	if("tvarss"%in%class(x)){return(x)}
+	stopifnot(class(x)%in%c("rjags", "rjags.parallel"))
 	o <- x$BUGSoutput$sims.list
 	class(o) <- "tvarss"
 	return(o)
@@ -97,7 +97,7 @@ as.tvarss <- function(x){
 summarize.tvarss <- function(x, FUN="mean"){
 	requireNamespace("fields", quietly=TRUE)
 	
-	if(class(x)=="rjags"){x <- as.tvarss(x)}
+	if(any(class(x)%in%c("rjags", "rjags.parallel"))){x <- as.tvarss(x)}
 		
 	FUN <- match.fun(FUN)
 	
@@ -140,7 +140,7 @@ summarize.tvarss <- function(x, FUN="mean"){
 #' @return invisibly returns a named list of (possibly relative) probability densities
 #' @export
 plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab){
-	if(class(x)=="rjags"){x <- as.tvarss(x)}
+	if(any(class(x)%in%c("rjags", "rjags.parallel"))){x <- as.tvarss(x)}
 	ldim <- function(x){
 		ds <- lapply(x, dim) # dimensions for each parameter
 		ts_params <- sapply(ds, function(xx)xx[2] > 1)# parameters that are likely time series
