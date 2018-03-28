@@ -1,4 +1,5 @@
 library(data.table)
+library(timeScales)
 #phi[j-1] + 0.95*cos(2*pi*dt*j)*(dt*2*pi)
 # dt <- 1/160 # period of the sine wave [so not really a 'dt', don't be confused by this]
  
@@ -64,7 +65,7 @@ dev.new()
 par(mfrow=c(2,2), mar=c(2.5,2.5,1,1), mgp=c(1.5,0.5,0), tcl=-0.2)
 plot(phi, type='l')
 plot(C, type='l')
-plotPost.tvarss(test, varName=c('Phi'))
+plotPost.tvarss(out_noMean, varName=c('Phi'))
 
 # ---- Fit Model w/ Time-Varying Mean ----
 out_mean <- tvarss(Y, niter=2E3, tvMean=TRUE)
@@ -73,7 +74,7 @@ dev.new()
 par(mfrow=c(2,2), mar=c(2.5,2.5,1,1), mgp=c(1.5,0.5,0), tcl=-0.2)
 plot(phi, type='l')
 plot(C, type='l')
-plotPost.tvarss(test, varName=c('Phi','C'))
+plotPost.tvarss(out_mean, varName=c('Phi','C'))
 
 
 

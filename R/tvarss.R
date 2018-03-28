@@ -9,16 +9,21 @@
 #' @param parallel logical; use parallel computing?
 #' @param oType character indicating type of output; 'jags' is default, outputs an 'rjags' class object. If 'tvarss', output type is class 'tvarss', which is just a subset of the original 'rjags' object (just includes posterior samples of parameters as a list)
 #' 
-#' The model is as follows.
-#' Observation:
+#' @details
+#' The model is as follows.  
+#'   
+#' Observation:\cr
 #' \eqn{y_t = z_t + v_t}
-#' Process:
+#' 
+#' Process:\cr
 #' \eqn{z_t = C_t + \Phi_t*B^p(Z_t - C_t) + w_t}
-#' \eqn{B^p} is backshift of order p; if \eqn{p=2}
-#' \eqn{B^pZ = [z_{t-1}, z_{t-2}]^{-1}} ; note that the [ are used here to indicate a matrix
-#' Parameters are time-varying:
-#' \eqn{\Phi_t = \Phi_{t-1} + \epsilon_t}
-#' \eqn{C_t = C_{t-1} + \xi_t}
+#' 
+#' \eqn{B^p} is backshift of order p; if \eqn{p=2}\cr
+#' \eqn{B^pZ = [z_{t-1}, z_{t-2}]^{-1}} ; note that the \code{[} are used here to indicate a matrix
+#' 
+#' Parameters are time-varying:\cr
+#' \eqn{\Phi_t = \Phi_{t-1} + \epsilon_t}\cr
+#' \eqn{C_t = C_{t-1} + \xi_t}\cr
 #' 
 #' @return a model of class 'rjags' or 'tvarss'
 #' @export
@@ -33,10 +38,10 @@ tvarss <- function(Y, nP=1, niter=1E3, tvMean=FALSE, parallel=FALSE, oType=c("ja
 	
 	if(tvMean){
 		# model_file <- "~/Documents/School&Work/epaPost/timeScales/inst/jags/tv_arp_mean.jags"
-		model_file <- file.path(system.file(package="timeScales"), "/inst/jags/tv_arp_mean.jags")
+		model_file <- file.path(system.file(package="timeScales"), "jags/tv_arp_mean.jags")
 	}else{
 		# model_file <- "~/Documents/School&Work/epaPost/timeScales/inst/jags/tv_arp_noMean.jags"
-		model_file <- file.path(system.file(package="timeScales"), "/inst/jags/tv_arp_noMean.jags")
+		model_file <- file.path(system.file(package="timeScales"), "jags/tv_arp_noMean.jags")
 	}
 	
 	inputData <- list(nP=nP, Y=Y, n=n, nP1=nP1)
@@ -101,8 +106,8 @@ summarize.tvarss <- function(x, FUN="mean"){
 		ts_params <- sapply(ds, function(xx)xx[2] > 1)# parameters that are likely time series
 		return(ts_params)
 	}
-	sw <- function(x, D, FUN=FUN){
-		apply(x, MARGIN=D, FUN=FUN)
+	sw <- function(x, D, .FUN=FUN){
+		apply(x, MARGIN=D, FUN=.FUN)
 	}
 	
 	ts_params <- ldim(x)
@@ -128,7 +133,7 @@ summarize.tvarss <- function(x, FUN="mean"){
 #' Plot a heat map representing the probability density of a 'tvarss' parameter that varies over time
 #' 
 #' @param x a 'tvarss' or 'rjags' object
-#' @param varName, NULL (default) or character indicating names of parameters in \code{x}. If NULL, plots all time-varying parameters
+#' @param varName NULL (default) or character indicating names of parameters in \code{x}. If NULL, plots all time-varying parameters
 #' @param relative logical, if TRUE (default), at each time step the probability density of all values is divided by the maximum.
 #' @param main,xlab,ylab character vector indicating the plotting labels to use. If a length-1 vector is supplied, the same character will be used for that label for all parameters
 #' 
@@ -141,9 +146,9 @@ plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab){
 		ts_params <- sapply(ds, function(xx)xx[2] > 1)# parameters that are likely time series
 		return(ts_params)
 	}
-	sw <- function(x, D, FUN=FUN){
-		apply(x, MARGIN=D, FUN=FUN)
-	}
+	# sw <- function(x, D, FUN=FUN){
+	# 	apply(x, MARGIN=D, FUN=FUN)
+	# }
 	
 	ts_params <- ldim(x)
 	
