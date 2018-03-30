@@ -180,69 +180,21 @@ mapply(plotac_simp, simARp_nod, ylab=ylabs)
 mtext("No Detrending", side=3, outer=TRUE, adj=0.75, line=0)
 
 
-# =================
-# = DLM TVAR(1)SS =
-# =================
+# =============================================
+# = Xvalues to be used in all TVARSS plotting =
+# =============================================
 tvarss_xvals <- lapply(lakeP_agg, function(x){x[variable=="X", as.numeric(x)]})
 
-
-tvdlm_wrapper <- function(x, det=FALSE, fit_arP=FALSE, ...){
-	
-	ylist <- lapply(x, function(x){x[variable=="X", y]})
-	if(det){
-		mp <- 2
-		mf <- floor(pmin(sapply(ylist, stats::frequency)/2, 2)) # set fourier order to 2 if sufficient samples per cycle, otherwise make 0
-		mi <- c(0,mp)[(mf>0)+1]
-		ylist <- mapply(detrendR, ylist, max_fourier=mf, max_interaction=mi, MoreArgs=list(max_poly=mp))
-	}
-	
-	find_nP <- function(x){
-		arp_mod_full <- ar(x, order.max=ceiling(stats::frequency(x))*5)
-		nP <- length(arp_mod_full$ar)
-		nP <- max(nP, 1)
-		return(nP)
-	}
-	
-	if(fit_arP){
-		nPs <- sapply(ylist, find_nP)
-	}else{
-		nPs <- rep(1, length(ylist))
-	}
-	# tvarss_list <- lapply(ylist, tvarss, nP=nP, niter=2E3, parallel=TRUE, oType="tvarss", ...)
-	# tvarss_list1 <- tvarss(ylist[[1]], nP=nPs[1], niter=2E3, parallel=TRUE, oType="tvarss") #mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=2E3, parallel=TRUE, oType="tvarss"))
-	tvarss_list <- mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=2E3, parallel=TRUE, oType="tvarss", ...), SIMPLIFY=FALSE)
-	# names(tvarss_list) <- names(x) # not needed, will keep names
-	
-	if(fit_arP){
-		if(any(nPs>1)){
-			requireNamespace("doParallel", quiety=TRUE)
-			requireNamespace("foreach", quiety=TRUE)
-			
-			doParallel::registerDoParallel(cores=4)
-			eigs <- foreach::foreach(j in 1:length(tvarss_list), .combine=list) %dopar% {
-				apply(tvarss_list[[j]]$Phi, c(1,2), function(x)max(Mod(arEigs(x))))
-			}
-			for(j in 1:length(tvarss_list)){
-				tvarss_list[[j]]$Eigen <- eigs[[j]]
-			}
-		}else{
-			for(j in 1:length(tvarss_list)){
-				tvarss_list[[j]]$Eigen <- tvarss_list[[j]]$Phi
-			}
-		}
-	}
-	return(tvarss_list)
-}
 
 # ===================
 # = Fit TVARSS DLMs =
 # ===================
 # ---- TVAR(1)SS ----
-tvarss_noMean_list <- tvdlm_wrapper(lakeP_agg, det=TRUE)
-tvarss_noMean_nod_list <- tvdlm_wrapper(lakeP_agg)
+tvarss_noMean_list <- tvarss_wrapper(lakeP_agg, det=TRUE)
+tvarss_noMean_nod_list <- tvarss_wrapper(lakeP_agg)
 
-tvarss_list <- tvdlm_wrapper(lakeP_agg, tvMean=TRUE, det=TRUE)
-tvarss_nod_list <- tvdlm_wrapper(lakeP_agg, tvMean=TRUE)
+tvarss_list <- tvarss_wrapper(lakeP_agg, tvMean=TRUE, det=TRUE)
+tvarss_nod_list <- tvarss_wrapper(lakeP_agg, tvMean=TRUE)
 
 # ---- Plot TVAR(1)SS ----
 ylabs <- paste0("TVAR(1) of DLM (", gsub("agg", "agg=", names(lakeP_agg)), ")")
@@ -265,11 +217,11 @@ mtext("Varying Mean, No Detrending", side=3, line=0, outer=TRUE, adj=0.15)
 
 
 # ---- TVAR(p)SS ----
-tvarss_noMean_nP_list <- tvdlm_wrapper(lakeP_agg, fit_arP=TRUE, det=TRUE)
-tvarss_noMean_nP_nod_list <- tvdlm_wrapper(lakeP_agg, fit_arP=TRUE)
+tvarss_noMean_nP_list <- tvarss_wrapper(lakeP_agg, fit_arP=TRUE, det=TRUE)
+tvarss_noMean_nP_nod_list <- tvarss_wrapper(lakeP_agg, fit_arP=TRUE)
 
-tvarss_nP_list <- tvdlm_wrapper(lakeP_agg, tvMean=TRUE, fit_arP=TRUE, det=TRUE)
-tvarss_nP_nod_list <- tvdlm_wrapper(lakeP_agg, tvMean=TRUE, fit_arP=TRUE)
+tvarss_nP_list <- tvarss_wrapper(lakeP_agg, tvMean=TRUE, fit_arP=TRUE, det=TRUE)
+tvarss_nP_nod_list <- tvarss_wrapper(lakeP_agg, tvMean=TRUE, fit_arP=TRUE)
 
 # ---- Plot TVAR(p)SS ----
 # ylabels for tvar(p)ss

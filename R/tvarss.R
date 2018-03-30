@@ -199,3 +199,65 @@ plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab, xv
 	}
 	invisible(densL)
 }
+
+
+#' TVARSS Wrapper Function
+#' 
+#' A wrapper function for tvarss() that handles 1) applying tvarss to a list of data.tables/ matrices containing time series to be analyzed; 2) detrending; 3) finding 'p' for AR(p) models; 4) calculating and extracting eigenvalues of the AR(p) models (and doing so in a way that handles them just like another 'parameter' from the model)
+#' 
+#' @param x an object conaining a list of data.tables to analyze. Each data.table should have a column named "variable", of which some elements need to be "X". When variable=="X", the a column 'y' of the data.table will be taken to be the time series to analyze. The column 'y' should be a "ts" object, with a specified \code{stats::frequency}
+#' @param det logical, to detrend?
+#' @param fit_arP logical, if TRUE, will fit an TVAR(p)SS model
+#' @param niter number of iterations
+#' @param thinout number of samples of the posterior to save in ouput (reduced from niter via 'thinning')
+#' @param ... additional arguments to be passed to \code{\link{tvarss}}; note that the arguments \code{niter=3E3}, \code{thinout=500}, \code{parallel}, \code{nP}, and \code{oType="tvarss"} are already provided either as arguments to this wrapper function, or specified directly within this function.
+#' 
+#' @return a list of class "tvarss" objects; the names of the elements of this list will be the same as the names of \code{x}
+#' @export
+tvarss_wrapper <- function(x, det=FALSE, fit_arP=FALSE, niter=3E3, thinout=500, ...){
+	
+	ylist <- lapply(x, function(x){x[variable=="X", y]})
+	if(det){
+		mp <- 2
+		mf <- floor(pmin(sapply(ylist, stats::frequency)/2, 2)) # set fourier order to 2 if sufficient samples per cycle, otherwise make 0
+		mi <- c(0,mp)[(mf>0)+1]
+		ylist <- mapply(detrendR, ylist, max_fourier=mf, max_interaction=mi, MoreArgs=list(max_poly=mp))
+	}
+	
+	find_nP <- function(x){
+		arp_mod_full <- ar(x, order.max=ceiling(stats::frequency(x))*5)
+		nP <- length(arp_mod_full$ar)
+		nP <- max(nP, 1)
+		return(nP)
+	}
+	
+	if(fit_arP){
+		nPs <- sapply(ylist, find_nP)
+	}else{
+		nPs <- rep(1, length(ylist))
+	}
+	# tvarss_list <- lapply(ylist, tvarss, nP=nP, niter=2E3, parallel=TRUE, oType="tvarss", ...)
+	# tvarss_list1 <- tvarss(ylist[[1]], nP=nPs[1], niter=2E3, parallel=TRUE, oType="tvarss") #mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=2E3, parallel=TRUE, oType="tvarss"))
+	tvarss_list <- mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=niter, thinout=thinout, parallel=TRUE, oType="tvarss", ...), SIMPLIFY=FALSE)
+	# names(tvarss_list) <- names(x) # not needed, will keep names
+	
+	if(fit_arP){
+		if(any(nPs>1)){
+			requireNamespace("doParallel", quiety=TRUE)
+			requireNamespace("foreach", quiety=TRUE)
+			
+			doParallel::registerDoParallel(cores=4)
+			eigs <- foreach::foreach(j=1:length(tvarss_list), .combine=list) %dopar% {
+				apply(tvarss_list[[j]]$Phi, c(1,2), function(x)max(Mod(arEigs(x))))
+			}
+			for(j in 1:length(tvarss_list)){
+				tvarss_list[[j]]$Eigen <- eigs[[j]]
+			}
+		}else{
+			for(j in 1:length(tvarss_list)){
+				tvarss_list[[j]]$Eigen <- tvarss_list[[j]]$Phi
+			}
+		}
+	}
+	return(tvarss_list)
+}
