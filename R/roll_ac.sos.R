@@ -4,6 +4,7 @@
 #' 
 #' @param X a data.table of lake observations, or possibly list of data.tables. Should have columns named "variable", "lake", "y", and "x". See Details.
 #' @param window_elapsed the number of observations that should have elapsed between the first and last observation; is the same as a "window size" when \code{n=1}
+#' @param fit_arP logical, if TRUE (default is FALSE), perform model selection to determine the order of the ar() process, then calculate and return the ||eigenvalue|| instead of an AR(1) coeff
 #' @param by integer indicating the number of time steps to increment the window as it "rolls". Can be a list or a vector if \code{X} is a list. Can affect rolling window or statistic subsample, see Details.
 #' @param n integer indicating to subsample to every n-th observation when performing rolling window. Can be a list or a vector if \code{X} is a list. Can affect rolling window or statistic subsample, see Details.
 #' @param phase starting datum to use when subsampling
@@ -19,7 +20,11 @@
 #' @return list or list of data.tables containing rolling window statistic
 #' @import data.table
 #' @export
-roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE, DETREND=FALSE, save_output=FALSE){
+roll_ac.sos <- function(X, window_elapsed, fit_arP=FALSE, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE, DETREND=FALSE, save_output=FALSE){
+	if(any(unlist(n)!=1) & fit_arP){
+		stop("some n>1 and arP is TRUE; Cannot do AR(p) models on downsampled data")
+	}
+	
 	# check vars, set if missing
 	if(missing(vars)){
 		vars <- X[[1]][,unique(variable)]
@@ -60,7 +65,11 @@ roll_ac.sos <- function(X, window_elapsed, by=1, n=1, phase=1, vars, lakes, subW
 	# (By contrast, the `by` argument indicates the size by which roll_ts should  
 	# increment the rolling window positionand is unrelated to the statistic used)
 	if(all(unlist(n)==1)){
-		funUse <- ac1
+		if(fit_arP){
+			funUse <- arP # the defaults of this should do what I want
+		}else{
+			funUse <- ac1
+		}
 	}else{
 		funUse <- ac_sub
 	}
