@@ -180,3 +180,53 @@ getEigs_df <- function(rootGrid_I){
 	return(eigGrid_I)
 }
 
+#' Simulate Lake Phosphorus
+#' 
+#' Wrapper function for simulating a bifurcation involving lake phosphorus
+#' 
+#' @param nYears integer, number of years for simulation (not necessarily n time steps)
+#' @param I_range numeric vector of length 2, the starting and stopping values of P inputs to be used in the simulation; will increment linearly over the course of the simulation (including changing within a time step)
+# @param agg_steps numeric vector; should be at least length 1. Currently doesn't do anything to the simulation, but is recorded in output, wich can be convenient later (should probably remove this argument)
+# @param steps_per_day numeric vector; default is to calculate as 24/agg_steps; when the first value of agg_steps is 1, then the first default value of steps_per_day will be 24, which means that 1 day (year) of the simulation will have 24 observations
+#' @param dt numeric vector of length 1; should be <= 1. The fraction of a year at which a simulation should be incremented. For example, 1/24 (the default) would indicate 24 samples per year.
+#' @param add_sin logical; if TRUE (default), a sine wave is imposed on the process of the simulation
+#' @param sin_amp numeric vector of length 2; amplitude of the sine wave; first value is the amplitude for water P, second is sediment P
+#' @param noise_coeff numeric vector of length 2; standard deviation of the process error for water P (first value) and sediment P (second value)
+#' 
+#' @return a list of length 2; first element is a matrix of state variables, second is the dt value
+#' @export
+# simP_ts <- function(nYears, I_range=c(1.0, 1.33), agg_steps=c(1,4,24,48), steps_per_day=24/agg_steps, dt=1/steps_per_day[1], add_sin=TRUE, sin_amp=c(0.0075, 0.005), noise_coeff=c(0.005, 0.1)){
+simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp=c(0.0075, 0.005), noise_coeff=c(0.005, 0.1)){
+	stateMat <- matrix(NA, nrow=nYears/dt, ncol=2, dimnames=list(NULL, c("X","M"))) # empty matrix to hold state variables
+	I <- seq(from=I_range[1], to=I_range[2], length.out=nYears/dt) #0.25 #1.5 is a good value to show for simulation, maybe # nominal fraction of soil P washed into the lake; i think the critical point is at just over 1.336
+	stateMat[1,] <- c(1.2, 200) # set initial values for time series simulation
+	stateMat[1,] <- getRoot(c(I=I[1], stateMat[1,"X"], stateMat[1,"M"])) # make the initial values at equilibrium
+	if(any(is.na(stateMat[1,]))){ # if getRoot returns NA, it didn't find a root in max.iter steps; probably because are parameters are such that it'd be faster to start at higher values of the state parameter
+		stateMat[1,] <- c(2.5, 600) # set initial values for time series simulation
+		stateMat[1,] <- getRoot(c(I=I[1], stateMat[1,"X"], stateMat[1,"M"])) # make the initial values at equilibrium
+	}
+	for(j in 2:nrow(stateMat)){ # iterate through time steps
+		state <- stateMat[j-1,]
+		# if((j%%(288))==0){state <- getRoot(c(state, I=I[j-1]))} # this was intended to tie the system to the equilibrium, but don't do this, because it messes up the statistics. It'd be okay if set to equilibrium, simulated at constant I, and calculated ar() for that period of constant I. But changing I within a window of data for which ar() is calculated, while also abruptly setting to equilibrium within that same window ... doing that really messes stuff up. It creates decreasing autocorrelation at some time scales ... I think because of the additional jumps (depending how often it is tied back to root).
+		dState_dt <- modelDeterministicXM(state=state, pars=c(I=I[j]))
+	
+		# Runge-Kutta Approximation
+		# Not sure if I did this correctly
+		# k1 <- dState_dt
+		# k2 <- modelDeterministic(state=state+dt*k1/2)
+		# k3 <- modelDeterministic(state=state+dt*k2/2)
+		# k4 <- modelDeterministic(state=state+dt*k3)
+		# rkState <- stateMat[j-1,] + dt/6*(k1+2*k2+2*k3+k4)
+		# stateMat[j,] <- rkState # runge kutta
+	
+		# Euler Method Approximation
+		dState <- dState_dt*dt + rnorm(2, sd=c(noise_coeff[1], noise_coeff[2]))*dt + c(sin_amp[1], sin_amp[2])*cos(2*pi*dt*j)*(dt*2*pi)
+		eulerState <- state + dState
+		stateMat[j,] <- eulerState # euler
+	
+	}
+	stateMat <- cbind(time=seq(dt, nYears, by=dt), I=I, stateMat)
+	# return(list(stateMat=stateMat, agg_steps=agg_steps, steps_per_day=steps_per_day, dt=dt))
+	return(list(stateMat=stateMat, dt=dt))
+}
+
