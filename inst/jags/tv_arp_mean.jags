@@ -58,7 +58,7 @@ model{
 		for(i in 1:nP){
 			Phi[i, p] ~ dnorm(0, 100) #dunif(-1.0, 1.0)
 		}
-		C[p] ~ dnorm(0, tau_xi)
+		C[p] ~ dnorm(0, 0.01)
 	}
 	for(i in nP1:n){
 		for(p in 1:nP){

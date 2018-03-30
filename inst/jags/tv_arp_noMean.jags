@@ -37,7 +37,7 @@ model{
 	tau_xi ~ dgamma(0.001,0.001) # time-varying for constant
 	
 	# ---- time series mean ----
-	C ~ dnorm(0, tau_xi)
+	C ~ dnorm(0, 0.01)
 
 	# ---- Time-varying parameters ----
 	for(p in 1:nP){
