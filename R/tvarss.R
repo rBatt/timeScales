@@ -5,6 +5,7 @@
 #' @param Y vector of observed values of time series
 #' @param nP scalar, integer; order of the AR process
 #' @param niter scalar, integer; number of MCMC iterations 
+#' @param thinout scalar, the number of posterior samples you want; the thinning rate (n.thin) passed to JAGS is max(1, floor(niter/thinout))=n.thin.
 #' @param tvMean logical; if TRUE, include a time-varying 'constant' parameter indicating that the mean of the time series changes over time
 #' @param parallel logical; use parallel computing?
 #' @param oType character indicating type of output; 'jags' is default, outputs an 'rjags' class object. If 'tvarss', output type is class 'tvarss', which is just a subset of the original 'rjags' object (just includes posterior samples of parameters as a list)
@@ -27,7 +28,7 @@
 #' 
 #' @return a model of class 'rjags' or 'tvarss'
 #' @export
-tvarss <- function(Y, nP=1, niter=1E3, tvMean=FALSE, parallel=FALSE, oType=c("jags","tvarss")){
+tvarss <- function(Y, nP=1, niter=1E3, thinout=500, tvMean=FALSE, parallel=FALSE, oType=c("jags","tvarss")){
 	requireNamespace("R2jags", quietly=TRUE)
 	oType <- match.arg(oType)
 	
@@ -51,12 +52,13 @@ tvarss <- function(Y, nP=1, niter=1E3, tvMean=FALSE, parallel=FALSE, oType=c("ja
 	# 	data=names(inputData), inits=initialValues[1], parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=3E3, export_obj_names=c("param_names","model_file", "initialValues")
 	# )
 	
+	nthin <- max(1, floor(niter/thinout))
 	if(parallel){
 		out <- R2jags::jags.parallel(
-			data=names(inputData), parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter, export_obj_names=c("param_names","model_file", "niter"), envir = environment()
+			data=names(inputData), parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter, n.thin=nthin, export_obj_names=c("param_names","model_file", "niter", "nthin"), envir = environment()
 		)
 	}else{
-		out <- R2jags::jags(data=inputData, parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter)
+		out <- R2jags::jags(data=inputData, parameters.to.save=param_names, model.file=model_file, n.chains=4, n.iter=niter, n.thin=nthin)
 	}
 	
 	if(oType=="tvarss"){
@@ -136,10 +138,11 @@ summarize.tvarss <- function(x, FUN="mean"){
 #' @param varName NULL (default) or character indicating names of parameters in \code{x}. If NULL, plots all time-varying parameters
 #' @param relative logical, if TRUE (default), at each time step the probability density of all values is divided by the maximum.
 #' @param main,xlab,ylab character vector indicating the plotting labels to use. If a length-1 vector is supplied, the same character will be used for that label for all parameters
+#' @param xvals optional numeric vector of values to be associated with the horizontal (x) axis. If NULL (default), x-axis values are assign a sequence of integers that increase by 1, and the length of this sequence is the number of parameters within a named parameter obejct. E.g., default behavior is to give the Phi parameters, of which there are N, the x-values of 1:N, such as for a time series of Phi that is of length N.
 #' 
 #' @return invisibly returns a named list of (possibly relative) probability densities
 #' @export
-plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab){
+plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab, xvals=NULL){
 	if(any(class(x)%in%c("rjags", "rjags.parallel"))){x <- as.tvarss(x)}
 	ldim <- function(x){
 		ds <- lapply(x, dim) # dimensions for each parameter
@@ -180,7 +183,11 @@ plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab){
 	for(j in 1:sum(ts_params)){
 		tx <- x[ts_params][[j]]
 		ft <- range(c(tx)[-(1:nrow(tx))])
-		xvals <- do.call(seq, args=list(from=ft[1], to=ft[2], length.out=512))
+		if(is.null(xvals)){
+			xvals <- 1:ncol(dens)
+		}
+		yvals <- do.call(seq, args=list(from=ft[1], to=ft[2], length.out=512))
+		
 		if(!relative){
 			dens <- apply(tx, 2, function(xx){d<-density(xx, from=ft[1], to=ft[2])$y;return(d)})
 		}else{
@@ -188,7 +195,7 @@ plotPost.tvarss <- function(x, varName=NULL, relative=TRUE, main, xlab, ylab){
 			dens <- apply(tx, 2, function(xx){d<-density(xx, from=ft[1], to=ft[2])$y;d<-d/max(d);return(d)})
 		}
 		densL[[names(ts_params)[ts_params][j]]] <- dens
-		image(1:ncol(dens), xvals, t(dens), col=fields::tim.colors(256), main=main[j], ylab=ylab[j], xlab=xlab[j])		
+		image(xvals, yvals, t(dens), col=fields::tim.colors(256), main=main[j], ylab=ylab[j], xlab=xlab[j])		
 	}
 	invisible(densL)
 }
