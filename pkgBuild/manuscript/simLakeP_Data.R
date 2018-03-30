@@ -57,8 +57,8 @@ print(rootEigs[which.max(Re(rootEigs$X1)),], digits=10) # critical value based o
 # ===================
 dev.new(width=3.5, height=4.5)
 par(mfrow=c(2,1), mar=c(1.85,1.85,0.5,0.5), mgp=c(1,0.25,0), tcl=-0.25, ps=8, cex=1)
-lakePm[variable=="X", plot(ts(value, freq=1/dt), xlab="X, water P")]
-lakePm[variable=="M", plot(ts(value, freq=1/dt), xlab="M, sediment P")]
+lakePm[variable=="X", plot(ts(value, freq=1/dt), ylab="X, water P")]
+lakePm[variable=="M", plot(ts(value, freq=1/dt), ylab="M, sediment P")]
 
 
 # ===============================
