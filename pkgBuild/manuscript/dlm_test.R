@@ -68,8 +68,8 @@ plot(C, type='l')
 plotPost.tvarss(out_noMean, varName=c('Phi'))
 
 # ---- Fit Model w/ Time-Varying Mean ----
-out_mean <- tvarss(Y, niter=2E3, tvMean=TRUE)
-summarize.tvarss(as.tvarss(out_noMean))[]
+out_mean <- tvarss(Y, niter=2E3, tvMean=TRUE, parallel=TRUE)
+summarize.tvarss(as.tvarss(out_mean))[]
 dev.new()
 par(mfrow=c(2,2), mar=c(2.5,2.5,1,1), mgp=c(1.5,0.5,0), tcl=-0.2)
 plot(phi, type='l')
