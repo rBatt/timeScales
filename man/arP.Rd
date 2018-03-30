@@ -4,19 +4,27 @@
 \alias{arP}
 \title{AR(p)}
 \usage{
-arP(x, method = c("ar", "auto"), stepwise = TRUE)
+arP(x, method = c("ar", "auto"), oType = c("leadEig", "eigs", "coefs"),
+  stepwise = TRUE, ...)
 }
 \arguments{
 \item{x}{time series or numeric vector}
 
 \item{method}{either 'ar' or 'auto'; 'ar' uses \code{ar} in the 'stats' package, 'auto' uses the \code{auto.arima} in the 'forecast' package.}
 
+\item{oType}{output type; default is to return leading eigenvalue; 'eigs' returns all eigenvalues, and 'coefs' returns the AR() coefficients}
+
 \item{stepwise}{logical, if method is "auto", indicates whether to perform stepwise model selection (fast) or search all models. As in \code{auto.arima}}
+
+\item{...}{unused, but present to be compatible with \code{\link{ac1}} (so wrapper functions can accept either)}
 }
 \value{
-ar coefficients
+scalar if returning leading eigenvalue, or numeric vector of length p if return eigenvalues or ar() coefficients. For this last case the vector is named.
 }
 \description{
 Fit an AR(p) Model
+}
+\details{
+If model selection finds no autocorrelation, then an AR(1) model is fit with \code{stats::arima}.
 }
 

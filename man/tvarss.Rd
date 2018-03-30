@@ -4,8 +4,8 @@
 \alias{tvarss}
 \title{TVARSS}
 \usage{
-tvarss(Y, nP = 1, niter = 1000, tvMean = FALSE, parallel = FALSE,
-  oType = c("jags", "tvarss"))
+tvarss(Y, nP = 1, niter = 1000, thinout = 500, tvMean = FALSE,
+  parallel = FALSE, oType = c("jags", "tvarss"))
 }
 \arguments{
 \item{Y}{vector of observed values of time series}
@@ -14,27 +14,34 @@ tvarss(Y, nP = 1, niter = 1000, tvMean = FALSE, parallel = FALSE,
 
 \item{niter}{scalar, integer; number of MCMC iterations}
 
+\item{thinout}{scalar, the number of posterior samples you want; the thinning rate (n.thin) passed to JAGS is max(1, floor(niter/thinout))=n.thin.}
+
 \item{tvMean}{logical; if TRUE, include a time-varying 'constant' parameter indicating that the mean of the time series changes over time}
 
 \item{parallel}{logical; use parallel computing?}
 
-\item{oType}{character indicating type of output; 'jags' is default, outputs an 'rjags' class object. If 'tvarss', output type is class 'tvarss', which is just a subset of the original 'rjags' object (just includes posterior samples of parameters as a list)
-
-The model is as follows.
-Observation:
-\eqn{y_t = z_t + v_t}
-Process:
-\eqn{z_t = C_t + \Phi_t*B^p(Z_t - C_t) + w_t}
-\eqn{B^p} is backshift of order p; if \eqn{p=2}
-\eqn{B^pZ = [z_{t-1}, z_{t-2}]^{-1}} ; note that the [ are used here to indicate a matrix
-Parameters are time-varying:
-\eqn{\Phi_t = \Phi_{t-1} + \epsilon_t}
-\eqn{C_t = C_{t-1} + \xi_t}}
+\item{oType}{character indicating type of output; 'jags' is default, outputs an 'rjags' class object. If 'tvarss', output type is class 'tvarss', which is just a subset of the original 'rjags' object (just includes posterior samples of parameters as a list)}
 }
 \value{
 a model of class 'rjags' or 'tvarss'
 }
 \description{
 Fit a time-varying autoregressive state-space model in a Bayesian framework using JAGS
+}
+\details{
+The model is as follows.  
+  
+Observation:\cr
+\eqn{y_t = z_t + v_t}
+
+Process:\cr
+\eqn{z_t = C_t + \Phi_t*B^p(Z_t - C_t) + w_t}
+
+\eqn{B^p} is backshift of order p; if \eqn{p=2}\cr
+\eqn{B^pZ = [z_{t-1}, z_{t-2}]^{-1}} ; note that the \code{[} are used here to indicate a matrix
+
+Parameters are time-varying:\cr
+\eqn{\Phi_t = \Phi_{t-1} + \epsilon_t}\cr
+\eqn{C_t = C_{t-1} + \xi_t}\cr
 }
 

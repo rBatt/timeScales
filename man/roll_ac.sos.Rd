@@ -4,14 +4,16 @@
 \alias{roll_ac.sos}
 \title{Rolling Autocorrelation, SOS}
 \usage{
-roll_ac.sos(X, window_elapsed, by = 1, n = 1, phase = 1, vars, lakes,
-  subWindow = FALSE, subStat = FALSE, DETREND = FALSE,
-  save_output = FALSE)
+roll_ac.sos(X, window_elapsed, fit_arP = FALSE, by = 1, n = 1,
+  phase = 1, vars, lakes, subWindow = FALSE, subStat = FALSE,
+  DETREND = FALSE, save_output = FALSE)
 }
 \arguments{
 \item{X}{a data.table of lake observations, or possibly list of data.tables. Should have columns named "variable", "lake", "y", and "x". See Details.}
 
 \item{window_elapsed}{the number of observations that should have elapsed between the first and last observation; is the same as a "window size" when \code{n=1}}
+
+\item{fit_arP}{logical, if TRUE (default is FALSE), perform model selection to determine the order of the ar() process, then calculate and return the ||eigenvalue|| instead of an AR(1) coeff}
 
 \item{by}{integer indicating the number of time steps to increment the window as it "rolls". Can be a list or a vector if \code{X} is a list. Can affect rolling window or statistic subsample, see Details.}
 
