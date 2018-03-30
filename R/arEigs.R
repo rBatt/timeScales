@@ -23,10 +23,13 @@ diagExtend <- function(size, offset=-1){
 #' @seealso \code{\link{diagExtend}}, \code{\link{ar}}
 #' @export
 arEigs <- function(b){
-	nb <- length(b)
-	B <- diagExtend(nb,-1)
-	B[1,1:nb] <- b
-	eigs <- eigen(B)$values
-	# eigB <- max(abs(eigs))
+	# nb <- length(b)
+# 	B <- diagExtend(nb,-1)
+# 	B[1,1:nb] <- b
+# 	eigs <- eigen(B)$values
+# 	# eigB <- max(abs(eigs))
+	
+	eigs <- 1/(polyroot(c(-1,b)))
+	
 	return(eigs)
 }
