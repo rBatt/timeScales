@@ -42,7 +42,7 @@ model{
 	# ---- Time-varying parameters ----
 	for(p in 1:nP){
 		for(i in 1:nP){
-			Phi[i, p] ~ dnorm(0, 100) #dunif(-1.0, 1.0)
+			Phi[i, p] ~ dnorm(0, 1) T(-1.0, 1.0) #dunif(-1.0, 1.0)
 		}
 	}
 	for(i in nP1:n){
