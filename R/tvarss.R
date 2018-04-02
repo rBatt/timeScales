@@ -239,6 +239,7 @@ tvarss_wrapper <- function(x, det=FALSE, fit_arP=FALSE, niter=3E3, thinout=500, 
 	# tvarss_list <- lapply(ylist, tvarss, nP=nP, niter=2E3, parallel=TRUE, oType="tvarss", ...)
 	# tvarss_list1 <- tvarss(ylist[[1]], nP=nPs[1], niter=2E3, parallel=TRUE, oType="tvarss") #mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=2E3, parallel=TRUE, oType="tvarss"))
 	tvarss_list <- mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=niter, thinout=thinout, parallel=TRUE, oType="tvarss", ...), SIMPLIFY=FALSE)
+	# tvarss_list <- mapply(tvarss, ylist, nP=nPs, MoreArgs=list(niter=niter, thinout=thinout, parallel=TRUE, oType="tvarss"), SIMPLIFY=FALSE) # for debugging
 	# names(tvarss_list) <- names(x) # not needed, will keep names
 	
 	if(fit_arP){
@@ -247,7 +248,7 @@ tvarss_wrapper <- function(x, det=FALSE, fit_arP=FALSE, niter=3E3, thinout=500, 
 			requireNamespace("foreach", quiety=TRUE)
 			
 			doParallel::registerDoParallel(cores=4)
-			eigs <- foreach::foreach(j=1:length(tvarss_list), .combine=list) %dopar% {
+			eigs <- foreach::foreach(j=1:length(tvarss_list), .combine=list, .multicombine=TRUE) %dopar% {
 				apply(tvarss_list[[j]]$Phi, c(1,2), function(x)max(Mod(arEigs(x))))
 			}
 			for(j in 1:length(tvarss_list)){
