@@ -136,11 +136,12 @@ getInit <- function(gridN=100, Irange=c(0.25, 1.75), Xrange=c(0.05, 8), Mrange=c
 #' Get the Root of the Eutrophication Model
 #' Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)
 #' @param x a vector of length 3 with names X (water P), M (mud P), and I (P loading)
+#' @param maxiter maximum number of iterations to use when finding root
 #' @return numeric vector with roots
 #' @export
-getRoot <- function(x){
+getRoot <- function(x, maxiter=1E3){
 	tryCatch({
-		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=1E2)$root
+		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=maxiter)$root
 	}, warning=function(w)c(X=NA,M=NA))
 }
 
@@ -225,7 +226,7 @@ simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp
 		stateMat[j,] <- eulerState # euler
 	
 	}
-	stateMat <- cbind(time=seq(dt, nYears, by=dt), I=I, stateMat)
+	stateMat <- cbind(time=seq(1, nYears+1-dt, by=dt), I=I, stateMat)
 	# return(list(stateMat=stateMat, agg_steps=agg_steps, steps_per_day=steps_per_day, dt=dt))
 	return(list(stateMat=stateMat, dt=dt))
 }
