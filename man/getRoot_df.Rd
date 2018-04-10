@@ -5,10 +5,12 @@
 \title{Get the Root of the Eutrophication Model from a Data Frame
 Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)}
 \usage{
-getRoot_df(initialValues)
+getRoot_df(initialValues, ...)
 }
 \arguments{
 \item{initialValues}{a \code{data.frame} with 3 columns named X (water P), M (mud P), and I (P loading)}
+
+\item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
 a matrix with columns for initial values of X and M, roots (of X and M), and the bifurcation parameter I. Each row of output corresponds to a row of the input (though output reorded to ascending I). Original columns for state variables (X and M) will be renamed to "init.X" and "init.M". The equilibria that would be approached from these initial values, i.e. the 'roots', will take on the column names of "X" and "M". Thus, the columns X & M will not have the same values in the input as in the output (output are equilibrium values), unless the input states were already at equilibrium.

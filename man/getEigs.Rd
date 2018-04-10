@@ -5,10 +5,12 @@
 \title{Get Eigenvalues for Eutrophication Model
 Given the rate of change of state variables (water and mud P) and the input P, returns the eigenvalues}
 \usage{
-getEigs(x)
+getEigs(x, ...)
 }
 \arguments{
 \item{x}{a named vector of length 3 (X, M, I), as in \code{\link{modelDeterministicXM}}}
+
+\item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
 eigenvalues

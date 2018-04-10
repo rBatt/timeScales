@@ -5,7 +5,7 @@
 \title{Simulate Lake Phosphorus}
 \usage{
 simP_ts(nYears, I_range = c(1, 1.33), dt = 1/24, add_sin = TRUE,
-  sin_amp = c(0.0075, 0.005), noise_coeff = c(0.005, 0.1))
+  sin_amp = c(0.0075, 0.005), noise_coeff = c(0.005, 0.1), q = 10)
 }
 \arguments{
 \item{nYears}{integer, number of years for simulation (not necessarily n time steps)}
@@ -19,6 +19,8 @@ simP_ts(nYears, I_range = c(1, 1.33), dt = 1/24, add_sin = TRUE,
 \item{sin_amp}{numeric vector of length 2; amplitude of the sine wave; first value is the amplitude for water P, second is sediment P}
 
 \item{noise_coeff}{numeric vector of length 2; standard deviation of the process error for water P (first value) and sediment P (second value)}
+
+\item{q}{exponent parameter in the recycling term of the model; affects the sharpness of the transition}
 }
 \value{
 a list of length 2; first element is a matrix of state variables, second is the dt value

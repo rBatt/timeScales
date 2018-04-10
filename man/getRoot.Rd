@@ -5,10 +5,14 @@
 \title{Get the Root of the Eutrophication Model
 Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)}
 \usage{
-getRoot(x)
+getRoot(x, maxiter = 1000, ...)
 }
 \arguments{
 \item{x}{a vector of length 3 with names X (water P), M (mud P), and I (P loading)}
+
+\item{maxiter}{maximum number of iterations to use when finding root}
+
+\item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
 numeric vector with roots

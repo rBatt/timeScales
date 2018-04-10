@@ -5,10 +5,12 @@
 \title{Get Eigenvalues for Eutrophication Model (from data frame of states)
 Given the rate of change of state variables (water and mud P) and the input P, returns the eigenvalues}
 \usage{
-getEigs_df(rootGrid_I)
+getEigs_df(rootGrid_I, ...)
 }
 \arguments{
 \item{rootGrid_I}{a matrix with columns named for X, M, I, as in \code{\link{modelDeterministicXM}}; these columns are the equilibria (roots) of the state variables, and I, the P input parameter.}
+
+\item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
 data.frame of eigenvalues

@@ -5,7 +5,7 @@
 \title{Jacobian matrix for deterministic eutrophication model
 Jacboian for the 2D eutrophication model involving water, mud, and input phosphorus}
 \usage{
-mDXM_jac(t, state, pars)
+mDXM_jac(t, state, pars, ...)
 }
 \arguments{
 \item{t}{time, for compatability with rootSolve::jacobian.full, but not used otherwise}
@@ -13,6 +13,8 @@ mDXM_jac(t, state, pars)
 \item{state}{state variables as in \code{\link{modelDeterministicXM}}}
 
 \item{pars}{paramters as in \code{\link{modelDeterministicXM}}}
+
+\item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
 Jacobian matrix
