@@ -226,7 +226,7 @@ simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp
 		stateMat[j,] <- eulerState # euler
 	
 	}
-	stateMat <- cbind(time=seq(1, nYears+1-dt, by=dt), I=I, stateMat)
+	stateMat <- cbind(time=seq(0, nYears-dt, by=dt), I=I, stateMat)
 	# return(list(stateMat=stateMat, agg_steps=agg_steps, steps_per_day=steps_per_day, dt=dt))
 	return(list(stateMat=stateMat, dt=dt))
 }
