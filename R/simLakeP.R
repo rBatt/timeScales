@@ -102,10 +102,11 @@ modelDeterministicXM <- function(state, pars=c(I=0.00115*750), b=0.001, h=0.252,
 #' @param t time, for compatability with rootSolve::jacobian.full, but not used otherwise
 #' @param state state variables as in \code{\link{modelDeterministicXM}}
 #' @param pars paramters as in \code{\link{modelDeterministicXM}}
+#' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @return Jacobian matrix
 #' @export
-mDXM_jac <- function(t, state, pars){
-	modelDeterministicXM(state, pars)
+mDXM_jac <- function(t, state, pars, ...){
+	modelDeterministicXM(state, pars, ...)
 }
 
 #' Get Initial Values for Eutrohpication Model
@@ -137,21 +138,23 @@ getInit <- function(gridN=100, Irange=c(0.25, 1.75), Xrange=c(0.05, 8), Mrange=c
 #' Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)
 #' @param x a vector of length 3 with names X (water P), M (mud P), and I (P loading)
 #' @param maxiter maximum number of iterations to use when finding root
+#' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @return numeric vector with roots
 #' @export
-getRoot <- function(x, maxiter=1E3){
+getRoot <- function(x, maxiter=1E3, ...){
 	tryCatch({
-		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=maxiter)$root
+		rootSolve::multiroot(f=modelDeterministicXM, start=x[c("X","M")], parms=list(I=x["I"]), maxiter=maxiter, ...)$root
 	}, warning=function(w)c(X=NA,M=NA))
 }
 
 #' Get the Root of the Eutrophication Model from a Data Frame
 #' Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)
 #' @param initialValues a \code{data.frame} with 3 columns named X (water P), M (mud P), and I (P loading)
+#' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @return a matrix with columns for initial values of X and M, roots (of X and M), and the bifurcation parameter I. Each row of output corresponds to a row of the input (though output reorded to ascending I). Original columns for state variables (X and M) will be renamed to "init.X" and "init.M". The equilibria that would be approached from these initial values, i.e. the 'roots', will take on the column names of "X" and "M". Thus, the columns X & M will not have the same values in the input as in the output (output are equilibrium values), unless the input states were already at equilibrium.
 #' @export
-getRoot_df <- function(initialValues){
-	rootGrid <- t(apply(initialValues, 1, getRoot))
+getRoot_df <- function(initialValues, ...){
+	rootGrid <- t(apply(initialValues, 1, getRoot, ...))
 	rootGrid_I <- data.matrix(data.frame(I=initialValues[,"I"], init=initialValues[,c("X","M")], rootGrid))
 	rootGrid_I <- rootGrid_I[order(rootGrid_I[,"I"]),] # i should really remove this ...
 	return(rootGrid_I)
@@ -160,23 +163,25 @@ getRoot_df <- function(initialValues){
 #' Get Eigenvalues for Eutrophication Model
 #' Given the rate of change of state variables (water and mud P) and the input P, returns the eigenvalues
 #' @param x a named vector of length 3 (X, M, I), as in \code{\link{modelDeterministicXM}}
+#' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @return eigenvalues
 #' @export
-getEigs <- function(x){
+getEigs <- function(x, ...){
 	if(any(is.na(x))){return(c(NA,NA))}
-	jac <- rootSolve::jacobian.full(y=x[c("X","M")], func=mDXM_jac, parms=x["I"])
+	jac <- rootSolve::jacobian.full(y=x[c("X","M")], func=mDXM_jac, parms=x["I"], ...)
 	eigen(jac)$values
 }
 #' Get Eigenvalues for Eutrophication Model (from data frame of states)
 #' Given the rate of change of state variables (water and mud P) and the input P, returns the eigenvalues
 #' @param rootGrid_I a matrix with columns named for X, M, I, as in \code{\link{modelDeterministicXM}}; these columns are the equilibria (roots) of the state variables, and I, the P input parameter.
+#' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @note the "Grid" name just comes from legacy coding where I was trying a "grid" (as in, e.g., \code{expand.grid}) of X, M, and I values as initial values for which I was calculating equilibria.
 #' @seealso \code{\link{getEigs}}
 #' @return data.frame of eigenvalues
 #' @export
-getEigs_df <- function(rootGrid_I){
+getEigs_df <- function(rootGrid_I, ...){
 	rootGrid_I_comp <- data.matrix(rootGrid_I) #data.matrix(rootGrid_I[complete.cases(rootGrid_I),])
-	eigGrid <- t(apply(rootGrid_I_comp,1,getEigs))
+	eigGrid <- t(apply(rootGrid_I_comp,1,getEigs, ...))
 	eigGrid_I <- data.frame(rootGrid_I_comp, eigGrid)
 	return(eigGrid_I)
 }
@@ -193,11 +198,12 @@ getEigs_df <- function(rootGrid_I){
 #' @param add_sin logical; if TRUE (default), a sine wave is imposed on the process of the simulation
 #' @param sin_amp numeric vector of length 2; amplitude of the sine wave; first value is the amplitude for water P, second is sediment P
 #' @param noise_coeff numeric vector of length 2; standard deviation of the process error for water P (first value) and sediment P (second value)
+#' @param q exponent parameter in the recycling term of the model; affects the sharpness of the transition
 #' 
 #' @return a list of length 2; first element is a matrix of state variables, second is the dt value
 #' @export
 # simP_ts <- function(nYears, I_range=c(1.0, 1.33), agg_steps=c(1,4,24,48), steps_per_day=24/agg_steps, dt=1/steps_per_day[1], add_sin=TRUE, sin_amp=c(0.0075, 0.005), noise_coeff=c(0.005, 0.1)){
-simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp=c(0.0075, 0.005), noise_coeff=c(0.005, 0.1)){
+simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp=c(0.0075, 0.005), noise_coeff=c(0.005, 0.1), q=10){
 	stateMat <- matrix(NA, nrow=nYears/dt, ncol=2, dimnames=list(NULL, c("X","M"))) # empty matrix to hold state variables
 	I <- seq(from=I_range[1], to=I_range[2], length.out=nYears/dt) #0.25 #1.5 is a good value to show for simulation, maybe # nominal fraction of soil P washed into the lake; i think the critical point is at just over 1.336
 	stateMat[1,] <- c(1.2, 200) # set initial values for time series simulation
@@ -209,7 +215,7 @@ simP_ts <- function(nYears, I_range=c(1.0, 1.33), dt=1/24, add_sin=TRUE, sin_amp
 	for(j in 2:nrow(stateMat)){ # iterate through time steps
 		state <- stateMat[j-1,]
 		# if((j%%(288))==0){state <- getRoot(c(state, I=I[j-1]))} # this was intended to tie the system to the equilibrium, but don't do this, because it messes up the statistics. It'd be okay if set to equilibrium, simulated at constant I, and calculated ar() for that period of constant I. But changing I within a window of data for which ar() is calculated, while also abruptly setting to equilibrium within that same window ... doing that really messes stuff up. It creates decreasing autocorrelation at some time scales ... I think because of the additional jumps (depending how often it is tied back to root).
-		dState_dt <- modelDeterministicXM(state=state, pars=c(I=I[j]))
+		dState_dt <- modelDeterministicXM(state=state, pars=c(I=I[j]), q=q)
 	
 		# Runge-Kutta Approximation
 		# Not sure if I did this correctly
