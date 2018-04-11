@@ -126,7 +126,7 @@ getInit <- function(gridN=100, Irange=c(0.25, 1.75), Xrange=c(0.05, 8), Mrange=c
 	Xgrid <- seq(Xrange[1], Xrange[2], length.out=Xn)
 	Mgrid <- seq(Mrange[1], Mrange[2], length.out=Mn)
 
-	sequences <- data.frame(I=Igrid, X=Xgrid, M=Mgrid)
+	# sequences <- data.frame(I=Igrid, X=Xgrid, M=Mgrid)
 	initialValues <- expand.grid(I=Igrid, X=Xgrid, M=Mgrid)
 	# startMudP <-
 	initialValues <- initialValues[order(initialValues[,"I"]),]
