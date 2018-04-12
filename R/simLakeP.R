@@ -109,6 +109,21 @@ mDXM_jac <- function(t, state, pars, ...){
 	modelDeterministicXM(state, pars, ...)
 }
 
+#' Wrapper for model when finding stability properties
+#' 
+#' Wrapper for model finding stability properties using \code{phaseR} package
+#' 
+#' @param t time, for compatibility with \code{phaseR} and \code{deSolve} and \code{rootSolve}
+#' @param y state variables as in \code{\link{modelDeterministicXM}}
+#' @param parameters same as \code{pars} in \code{\link{modelDeterministicXM}}; had to be called 'parameters' for compatibility with \code{phaseR}
+#' @param ... other arguments to be passed to \code{\link{modelDeterministicXM}}
+#' @return rate of change of state variables
+#' @export
+mDXM <- function(t, y, parameters, ...){
+	names(y) <- c("X","M")
+	list(modelDeterministicXM(y, pars=parameters, ...))
+}
+
 #' Get Initial Values for Eutrohpication Model
 #' Gets a grid/ mesh of values for eventual input to model
 #' @param gridN number of values for I and X
