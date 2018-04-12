@@ -4,9 +4,11 @@
 #'   
 #' Some functions in this package may be useful for other applications. However, this package, and the functions and data herein, are designed as a transparent and documented record of analyses performed in the preparation of a manuscript being prepared for submission to a peer-reviewed journal. Therefore, the primary objective of this package is not for general use to assess time-scale-sensitivity of early warning statistics of arbitrary time series, but instead to test the hypotheses in the manuscript. That said, an effort was made to make many of the functions relatively general, and others may find it easy to adapt these statistics and code to their own needs.  
 #' 
-#' @importFrom graphics image
-#' @importFrom stats ar coef density frequency
+#' @importFrom graphics image legend points par strwidth
+#' @importFrom stats ar coef density frequency arima rnorm complete.cases
 #' @importFrom utils write.csv
+#' @importFrom foreach %dopar%
+#' @importFrom grDevices adjustcolor
 #'   
 #' @docType package
 #' @name timeScales

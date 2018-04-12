@@ -10,4 +10,8 @@ update_dependencies <- function(){
 	devtools::use_package("rootSolve", type="Imports")
 	devtools::use_package("R2jags", type="Imports")
 	devtools::use_package("fields", type="Imports")
+	devtools::use_package("deSolve", type="Imports")
+	devtools::use_package("phaseR", type="Imports")
+	devtools::use_package("foreach", type="Imports")
+	devtools::use_package("doParallel", type="Imports")
 }
