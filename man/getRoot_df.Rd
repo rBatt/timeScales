@@ -5,10 +5,12 @@
 \title{Get the Root of the Eutrophication Model from a Data Frame
 Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)}
 \usage{
-getRoot_df(initialValues, ...)
+getRoot_df(initialValues, maxiter = 1000, ...)
 }
 \arguments{
 \item{initialValues}{a \code{data.frame} with 3 columns named X (water P), M (mud P), and I (P loading)}
+
+\item{maxiter}{maximum number of iterations}
 
 \item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }

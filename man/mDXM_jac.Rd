@@ -2,13 +2,12 @@
 % Please edit documentation in R/simLakeP.R
 \name{mDXM_jac}
 \alias{mDXM_jac}
-\title{Jacobian matrix for deterministic eutrophication model
-Jacboian for the 2D eutrophication model involving water, mud, and input phosphorus}
+\title{Wrapper for model when finding Jacobian matrix}
 \usage{
 mDXM_jac(t, state, pars, ...)
 }
 \arguments{
-\item{t}{time, for compatability with rootSolve::jacobian.full, but not used otherwise}
+\item{t}{time, for compatibility with rootSolve::jacobian.full, but not used otherwise}
 
 \item{state}{state variables as in \code{\link{modelDeterministicXM}}}
 
@@ -17,10 +16,9 @@ mDXM_jac(t, state, pars, ...)
 \item{...}{additional arguments to pass to \code{\link{modelDeterministicXM}}}
 }
 \value{
-Jacobian matrix
+rate of change of state variables
 }
 \description{
-Jacobian matrix for deterministic eutrophication model
-Jacboian for the 2D eutrophication model involving water, mud, and input phosphorus
+Wrapper for model when finding Jacobian matrix using \code{rootSolve} package
 }
 

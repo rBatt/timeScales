@@ -4,13 +4,15 @@
 \alias{simP_ts}
 \title{Simulate Lake Phosphorus}
 \usage{
-simP_ts(nYears, I_range = c(1, 1.33), dt = 1/24, add_sin = TRUE,
-  sin_amp = c(0.0075, 0.005), noise_coeff = c(0.005, 0.1), q = 10)
+simP_ts(nYears, I_range = c(1, 1.33), pars = NULL, dt = 1/24,
+  add_sin = TRUE, sin_amp = c(0.0075, 0.005), noise_coeff = c(0.005, 0.1))
 }
 \arguments{
 \item{nYears}{integer, number of years for simulation (not necessarily n time steps)}
 
 \item{I_range}{numeric vector of length 2, the starting and stopping values of P inputs to be used in the simulation; will increment linearly over the course of the simulation (including changing within a time step)}
+
+\item{pars}{named numeric vector of possible additional parameters to pass to \code{\link{modelDeterministicXM}}}
 
 \item{dt}{numeric vector of length 1; should be <= 1. The fraction of a year at which a simulation should be incremented. For example, 1/24 (the default) would indicate 24 samples per year.}
 
@@ -19,8 +21,6 @@ simP_ts(nYears, I_range = c(1, 1.33), dt = 1/24, add_sin = TRUE,
 \item{sin_amp}{numeric vector of length 2; amplitude of the sine wave; first value is the amplitude for water P, second is sediment P}
 
 \item{noise_coeff}{numeric vector of length 2; standard deviation of the process error for water P (first value) and sediment P (second value)}
-
-\item{q}{exponent parameter in the recycling term of the model; affects the sharpness of the transition}
 }
 \value{
 a list of length 2; first element is a matrix of state variables, second is the dt value
