@@ -223,6 +223,36 @@ getEigs_df <- function(rootGrid_I, ...){
 	return(eigGrid_I)
 }
 
+
+#' Stability Classification
+#' 
+#' Find equilibria for a model system of lake eutrophication and classify their stability
+#' 
+#' @param I numeric scalar representing P input; reasonable values might be between 0 and 2
+#' @param pars a named numeric vector of optional additional parameter values to be passed to \code{func}
+#' @param func function whose stability is to be classified; nominally this is \code{mDXM}, a wrapper for \code{\link{modelDeterministicXM}}; currently this function only works with the default b/c \code{\link{getRoot_df}} hasn't been set up to accept other functions as an argument
+#' @param Xvals,Mvals numeric vector of X (water P) or M (sediment P) values over which to search for equilibria
+#' @return a data.frame with a row for each equilibrium point found, and columns for the X,M coordinates of those points, a character describing its stability classification, the trace (tr) and determinant (Delta) of the Jacobian matrix at that point, the 'discriminant' value (tr^2 - 4*delta), and the parameter values supplied through I and pars.
+#' @export
+stabClass <- function(I, pars, func=mDXM, Xvals=seq(0,15,length.out=15), Mvals=seq(0,1E3,length.out=15)){
+	if(missing(pars)){pars <- NULL}
+	if("I"%in%names(pars)){pars <- pars[names(pars)!="I"]}
+	gridVals <- cbind(expand.grid(X=Xvals, M=Mvals), I=I)
+	rs <- getRoot_df(gridVals, pars=pars)
+	rs <- rs[complete.cases(rs),,drop=FALSE]
+	urs <- rs[!duplicated(paste0(round(rs[,"X"],4),round(rs[,"M"],4))), c("I","X","M"), drop=FALSE]
+
+	stab <- function(x){
+		st <- phaseR::stability(mDXM, y.star=x[-1,drop=FALSE], parameters=c(I=I,pars), summary=FALSE)
+		# if(is.null(names(st$parameters))){names(st$parameters) <- "I"}
+		o <- cbind(data.frame(X=st$y.star[1], M=st$y.star[2], classification=st$classification, Delta=st$Delta, discriminant=st$discriminant, tr=st$tr),as.list(st$parameters))
+		rownames(o) <- NULL
+		o$classification <- as.character(o$classification)
+		return(o)
+	}
+	do.call('rbind', apply(urs, 1, stab))
+}
+
 #' Simulate Lake Phosphorus
 #' 
 #' Wrapper function for simulating a bifurcation involving lake phosphorus
