@@ -97,13 +97,15 @@ modelDeterministicXM <- function(state, pars=c(I=0.00115*750), b=0.001, h=0.252,
 		c(dX_dt=dX_dt, dM_dt=dM_dt) # output rate of change for X and M
 	}) # end with
 }
-#' Jacobian matrix for deterministic eutrophication model
-#' Jacboian for the 2D eutrophication model involving water, mud, and input phosphorus
-#' @param t time, for compatability with rootSolve::jacobian.full, but not used otherwise
+#' Wrapper for model when finding Jacobian matrix
+#' 
+#' Wrapper for model when finding Jacobian matrix using \code{rootSolve} package
+#' 
+#' @param t time, for compatibility with rootSolve::jacobian.full, but not used otherwise
 #' @param state state variables as in \code{\link{modelDeterministicXM}}
 #' @param pars paramters as in \code{\link{modelDeterministicXM}}
 #' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
-#' @return Jacobian matrix
+#' @return rate of change of state variables
 #' @export
 mDXM_jac <- function(t, state, pars, ...){
 	modelDeterministicXM(state, pars, ...)
