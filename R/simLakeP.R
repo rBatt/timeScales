@@ -150,11 +150,12 @@ getRoot <- function(x, maxiter=1E3, ...){
 #' Get the Root of the Eutrophication Model from a Data Frame
 #' Finds the roots of the eutrophication model given starting values (water, mud P) and parameter (P loading)
 #' @param initialValues a \code{data.frame} with 3 columns named X (water P), M (mud P), and I (P loading)
+#' @param maxiter maximum number of iterations
 #' @param ... additional arguments to pass to \code{\link{modelDeterministicXM}}
 #' @return a matrix with columns for initial values of X and M, roots (of X and M), and the bifurcation parameter I. Each row of output corresponds to a row of the input (though output reorded to ascending I). Original columns for state variables (X and M) will be renamed to "init.X" and "init.M". The equilibria that would be approached from these initial values, i.e. the 'roots', will take on the column names of "X" and "M". Thus, the columns X & M will not have the same values in the input as in the output (output are equilibrium values), unless the input states were already at equilibrium.
 #' @export
-getRoot_df <- function(initialValues, ...){
-	rootGrid <- t(apply(initialValues, 1, getRoot, ...))
+getRoot_df <- function(initialValues, maxiter=1E3, ...){
+	rootGrid <- t(apply(initialValues, 1, getRoot, maxiter=maxiter, ...))
 	rootGrid_I <- data.matrix(data.frame(I=initialValues[,"I"], init=initialValues[,c("X","M")], rootGrid))
 	rootGrid_I <- rootGrid_I[order(rootGrid_I[,"I"]),] # i should really remove this ...
 	return(rootGrid_I)
