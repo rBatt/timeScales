@@ -6,7 +6,7 @@
 A 2D Eutrophication model with state variables for water P (X), mud P (M), and P loading as bifurcation parameter (I)}
 \usage{
 modelDeterministicXM(state, pars = c(I = 0.00115 * 750), b = 0.001,
-  h = 0.252, m = 2.4, r = 0.019, q = 10, s = 0.748)
+  h = 0.15, m = 2.4, r = 0.019, q = 8, s = 0.7)
 }
 \arguments{
 \item{state}{vector of length 2 with names X and M (water and mud P, respectively)}
