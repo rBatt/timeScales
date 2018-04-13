@@ -9,6 +9,7 @@
 #' @importFrom utils write.csv
 #' @importFrom foreach %dopar%
 #' @importFrom grDevices adjustcolor
+# @importFrom phaseR flowField nullclines trajectory stability
 #'   
 #' @docType package
 #' @name timeScales

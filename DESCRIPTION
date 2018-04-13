@@ -29,6 +29,6 @@ Imports: stats,
     R2jags,
     fields,
     deSolve,
-    phaseR,
     foreach,
     doParallel
+Suggests: phaseR

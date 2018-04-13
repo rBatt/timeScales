@@ -237,6 +237,7 @@ getEigs_df <- function(rootGrid_I, ...){
 #' @return a data.frame with a row for each equilibrium point found, and columns for the X,M coordinates of those points, a character describing its stability classification, the trace (tr) and determinant (Delta) of the Jacobian matrix at that point, the 'discriminant' value (tr^2 - 4*delta), and the parameter values supplied through I and pars.
 #' @export
 stabClass <- function(I, pars, func=mDXM, Xvals=seq(0,15,length.out=15), Mvals=seq(0,1E3,length.out=15)){
+	requireNamespace("phaseR", quietly=TRUE)
 	if(missing(pars)){pars <- NULL}
 	if("I"%in%names(pars)){pars <- pars[names(pars)!="I"]}
 	gridVals <- cbind(expand.grid(X=Xvals, M=Mvals), I=I)
