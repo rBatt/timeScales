@@ -26,6 +26,7 @@
 #' ))
 #' @export
 phasePortrait <- function(I, pars, func=mDXM, x.lim=c(0,15), y.lim=c(0,1000), add=FALSE, nFlow=20, nNull=300, t.end=50, inits=matrix(c(0.5,800, 0.1,950, 3,700, 1.5,600, 0.5,100, 2,150, 5,75, 4.5,115, 1,300, 2,400, 4,500, 10,300, 7,200), byrow=TRUE, ncol=2), addLeg=FALSE, legPos="topright"){
+	requireNamespace("flowField", quietly=TRUE)
 	if(missing(I)){
 		if('I' %in% names(pars)){
 			I <- unname(pars["I"])
