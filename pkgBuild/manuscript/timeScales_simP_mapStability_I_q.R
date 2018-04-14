@@ -101,9 +101,11 @@ opts_chunk$set(
 #' M =  \frac{sX}{b+rR}   &(6)\\[0.5em]
 #' \text{substituting for } M \text{ in the } dX/dt \text{ equation, I get}\\[0.5em]
 #' dX/dt =  I - X(s+h) + rR \frac{sX}{b+rR}   & (7)\\[2.0em]
+#' \text{differentiating Eq. 7 with respect to } X\\[0.5em]
+#' f''(X) = \frac{rsX^q(b(m^q(q+1)+X^q)+rX^q)}{(bm^q+bX^q+rX^q)^2} -s -h   & (8)\\
 #' \end{array}
 #'   
-#' It is Eq 7 above that I will be working from for the rest of this report. It gives me the derivative of X as a function of X (and parameters).  When this equation equal zero, there is a (un)stable point. When the derivative of Eq 7 is 0 AND Eq 7 itself is 0, that's a critical point.  
+#' It is Eqs 7 and 8 above that I will be working from for the rest of this report. Eq 7 gives me the derivative of X as a function of X (and parameters).  When this equation equal zero, there is a equilibrium. When Eq 8 is 0 AND Eq 7 itself is 0, that's a critical point.  
 #'   
 
 
@@ -137,9 +139,83 @@ dX_dt_ofXIq <- function(X, I, q){
 	
 	R <- X^q/(m^q + X^q)
 	dXdt <- I - X*(s+h) + r*R*((s*X)/(b+r*R))
+	# I - X*(s+h) + r*(X^q/(m^q + X^q))*((s*X)/(b+r*(X^q/(m^q + X^q))))
 	return(dXdt)
 }
 dX_dt_ofXIq(1, 1, 10)
+
+#' ##Function to Calculate d2X/dt2
+#+ secondDeriv, results='markup'
+d2Xdt <- function(X, pars){
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	with(as.list(pars), {
+		# (((b*r*s*q*X^q*m^q)/(X^q+m^q)^2)+((r*s*b*X^q)/(m^q+X^q))+((r^2*s*X^(2*q))/(m^q+X^q)^2))/(b^2 + ((2*b*r*X^q)/(m^q+X^q)) + ((r*X^q)/(m^q+X^q))^2) - s - h
+		(r*s*X^q*(b*(m^q*(q+1)+X^q)+r*X^q))/(b*m^q+b*X^q+r*X^q)^2 - s - h
+	})
+}
+
+uniroot.all(d2Xdt, c(0,10), n=1E4)
+uniroot.all(dX_dt_ofXIq, c(0,10), I=1, q=8, n=1E4)
+uniroot.all(dX_dt_ofXIq, c(0,10), I=0.997593522, q=8, n=1E6)
+uniroot.all(dX_dt_ofXIq, c(0,10), I=0.519496874, q=8, n=1E6)
+
+
+
+#' ##Function to Find Critical Values
+#+ function-findCriticalValues
+findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nGrid=1E6, xRange=c(0,100)){
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	
+	# xRange <- c(dX_dt_ofXIq(), dX_dt_ofXIq())
+	# xRange <- c(0, 100)
+	
+	x_targets <- uniroot.all(d2Xdt, xRange, n=nGrid)
+	target_dist <- function(I, target){
+		with(as.list(pars),{
+			# uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4)
+			# outer(uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4), x_targets, FUN="-")
+			# sum(outer(uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4), target, FUN="-")^2)
+			diffs <- outer(uniroot.all(dX_dt_ofXIq, xRange, I=I, q=q, n=nGrid), target, FUN="-")
+			diffs[which.min(abs(diffs))]
+		})
+	}
+	
+	
+	# testI <- seq(0.1,2,by=0.01)
+	# tdist <- vector('numeric', length(testI))
+	# for(i in 1:length(testI)){
+	# 	tI <- testI[i]
+	# 	tdist[i] <- target_dist(tI, target=x_targets[1])
+	# }
+	# plot(testI, tdist) # I cannot use uniroot() b/c there are severe discontinuities; as uniroot.all warns, it is really bad at finding 0's that just barely touch the 0 line; I think the algorithm looks for a change in sign or something
+	# uniroot(target_dist, interval=c(critRange[1],critRange[2]), target=xt, maxiter=1E4, tol=.Machine$double.eps/2)
+	
+	abs_target_dist <- function(I, target){abs(target_dist(I=I, target=target))}
+	# optim(0.5, abs_target_dist, target=x_targets[1])
+	# optimize(f=abs_target_dist, interval=critRange, target=x_targets[1], tol=.Machine$double.eps^0.5)
+	
+	criticalValue <- vector('numeric', length(x_targets))
+	for(i in 1:length(x_targets)){
+		xt <- x_targets[i]
+		criticalValue[i] <- optimize(f=abs_target_dist, interval=critRange, target=x_targets[i], tol=tol)$minimum
+	}
+	
+	return(criticalValue)
+	# diff(sort(root))*0.5*c(-1,1)+sort(root) # a good range of critical values
+}
+findCrit()
+
+
 
 #' ##Function for Plotting dX/dt vs X
 #+ plot_dXdt_function
@@ -189,15 +265,40 @@ for(j in 1:length(qs)){
 }
 mtext("X", side=1, line=1, outer=FALSE)
 
+#' #Identify Critical Values and Plot f(X)=dX/dt and f'(X)
+#+ findCriticalValues, result='markup'
+critVals <- findCrit()
+critVals
+
+#+ figure2-fX-fprimeX, fig.height=6, fig.width=3.5, fig.cap="**Figure 2.** Black line is the rate of change in water phosphorus (dX/dt) vs X when the rate of change in sediment phosphorus is 0. The blue line is the derivative of the black line with respect to X."
+par(mfrow=c(2,1), mar=c(2,2,0.75,0.5), mgp=c(1,0.25,0), tcl=-0.25, ps=8, cex=1)
+Xvals <- seq(0,8, by=0.01)
+ddXdt <- d2Xdt(Xvals)
+for(i in 1:length(critVals)){
+	dXdt <- dX_dt_ofXIq(Xvals, I=sort(critVals)[i], q=unlist(formals(modelDeterministicXM)[c("q")]))
+	ylim <- range(c(dXdt, ddXdt))
+	plot(Xvals, dXdt, ylim=ylim, type='l', xlab='Water P', ylab="f(X) or f '(X)")
+	lines(Xvals, ddXdt, col='blue', type='l')
+	legend("topright", lty=1, col=c("black","blue"), legend=c("f(X)=dX/dt", "f '(X)"))
+	abline(h=0, lty=2, col='gray')
+	grid()
+	mtext(paste0("I = ", round(critVals[i],6)), adj=0.1, font=2)
+}
+
+
+
 #'   
 #' \FloatBarrier  
 #'   
 #' ***  
 #'   
 #' #Phase Portrait
-#+ phasePortrait, fig.width=6, fig.height=6, fig.cap="**Figure 2.** A phase portrait of the system for varying values of P input when q=8. The vector field (indicating the direction and speed that the system moves through phase space at that point) is represented by gray arrows. Nullclines are represented red and blue lines, indicating where dX/dt and dM/dt are equal to zero, respectively.  Trajectories starting at arbitrary initial points (open diamonds) and continuing the along the accompanying solid black line indicate how the system moves from the initial point through phase space for 50 years. Equilibria are indicated by points: solid filled circle is a stable node, an 'X' is a saddle point. An equilibrium occurs whereever the nullclines cross. The different panels correspond to different values of P loading (I). "
+#+ figure3-phasePortrait, fig.width=6, fig.height=6, fig.cap="**Figure 3.** A phase portrait of the system for varying values of P input when q=8. The vector field (indicating the direction and speed that the system moves through phase space at that point) is represented by gray arrows. Nullclines are represented red and blue lines, indicating where dX/dt and dM/dt are equal to zero, respectively.  Trajectories starting at arbitrary initial points (open diamonds) and continuing the along the accompanying solid black line indicate how the system moves from the initial point through phase space for 50 years. Equilibria are indicated by points: solid filled circle is a stable node, an 'X' is a saddle point. An equilibrium occurs whereever the nullclines cross. The different panels correspond to different values of P loading (I). "
 par(mfrow=c(2,2), mar=c(2,2,1,0.5), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=8)
-Is <- c(0.75, 1, 1.25, 1.5)
+# Is <- c(0.75, 1, 1.25, 1.5)
+Is0 <- diff(sort(critVals))*0.5*c(-1,1)+sort(critVals) # a good range of critical values
+# Is <- round(c(Is0[1], critVals, Is0[2])-0.1,2)
+Is <- round(sort(c(outer(critVals, c(-0.1, .1), FUN='-'))), 2)
 for(i in 1:length(Is)){
 	timeScales::phasePortrait(pars=c(I=Is[i]), nFlow=10, addLeg=(i==2))
 	mtext(paste0("I = ",Is[i]), side=3, line=0, adj=0, font=2)
