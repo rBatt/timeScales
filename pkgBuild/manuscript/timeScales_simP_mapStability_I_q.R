@@ -127,8 +127,14 @@ opts_chunk$set(
 # @return a numeric value indicating dX/dt
 # @seealso \code{\link{modelDeterministicXM}}
 # @export
-dX_dt_ofXIq <- function(X, I, q){
-	pars <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b")])
+dX_dt_ofXI <- function(X, I, pars){
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	# pars <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b")])
 	for(i in 1:length(pars)){assign(names(pars)[i], unname(pars)[i])}
 
 	# h <- 0.15
@@ -142,7 +148,7 @@ dX_dt_ofXIq <- function(X, I, q){
 	# I - X*(s+h) + r*(X^q/(m^q + X^q))*((s*X)/(b+r*(X^q/(m^q + X^q))))
 	return(dXdt)
 }
-dX_dt_ofXIq(1, 1, 10)
+dX_dt_ofXI(1, 1, pars=c(q=10))
 
 #' ##Function to Calculate d2X/dt2
 #+ secondDeriv, results='markup'
@@ -159,15 +165,15 @@ d2Xdt <- function(X, pars){
 	})
 }
 
-uniroot.all(d2Xdt, c(0,10), n=1E4)
-uniroot.all(dX_dt_ofXIq, c(0,10), I=1, q=8, n=1E4)
-uniroot.all(dX_dt_ofXIq, c(0,10), I=0.997593522, q=8, n=1E6)
-uniroot.all(dX_dt_ofXIq, c(0,10), I=0.519496874, q=8, n=1E6)
+uniroot.all(d2Xdt, c(0,10), n=1E4) # X values when I hits a critical value (where f'(dX/dt)==0)
+uniroot.all(dX_dt_ofXI, c(0,10), I=1, pars=c(q=8), n=1E4) # equilibrium val of X when I = 1
+uniroot.all(dX_dt_ofXI, c(0,10), I=0.997593522, pars=c(q=8), n=1E6) # at this val of I, two equilibria are very close to colliding; collision would happen as I is increasing
+uniroot.all(dX_dt_ofXI, c(0,10), I=0.519496874, pars=c(q=8), n=1E6) # different value of I, but again, two equilibria very close; collision would happen as I is decreasing
 
 
 
 #' ##Function to Find Critical Values
-#+ function-findCriticalValues
+#+ function-findCriticalValues, results='markup'
 findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nGrid=1E6, xRange=c(0,100)){
 	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
 	if(missing(pars)){
@@ -176,16 +182,16 @@ findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nG
 		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
 	}
 	
-	# xRange <- c(dX_dt_ofXIq(), dX_dt_ofXIq())
+	# xRange <- c(dX_dt_ofXI(), dX_dt_ofXI())
 	# xRange <- c(0, 100)
 	
 	x_targets <- uniroot.all(d2Xdt, xRange, n=nGrid)
 	target_dist <- function(I, target){
 		with(as.list(pars),{
-			# uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4)
-			# outer(uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4), x_targets, FUN="-")
-			# sum(outer(uniroot.all(dX_dt_ofXIq, c(0,10), I=I, q=q, n=1E4), target, FUN="-")^2)
-			diffs <- outer(uniroot.all(dX_dt_ofXIq, xRange, I=I, q=q, n=nGrid), target, FUN="-")
+			# uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4)
+			# outer(uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4), x_targets, FUN="-")
+			# sum(outer(uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4), target, FUN="-")^2)
+			diffs <- outer(uniroot.all(dX_dt_ofXI, xRange, I=I, pars=c(q=8), n=nGrid), target, FUN="-")
 			diffs[which.min(abs(diffs))]
 		})
 	}
@@ -213,8 +219,6 @@ findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nG
 	return(criticalValue)
 	# diff(sort(root))*0.5*c(-1,1)+sort(root) # a good range of critical values
 }
-findCrit()
-
 
 
 #' ##Function for Plotting dX/dt vs X
@@ -230,7 +234,7 @@ findCrit()
 # 
 # @return no value returned, but as a byproduct q plots, each with length(Ivals) lines, is produced. 
 plot_dXdt_X <- function(Xvals, Ivals, q, ...){
-	dXdt_q10 <- outer(Xvals, Ivals, FUN=dX_dt_ofXIq, q=q)
+	dXdt_q10 <- outer(Xvals, Ivals, FUN=dX_dt_ofXI, pars=c(q=q))
 	cols <- viridis::viridis(n=ncol(dXdt_q10))
 	ylim <- range(dXdt_q10)
 	ylim[1] <- max(-10, min(-0.5, ylim[1]))
@@ -267,15 +271,15 @@ mtext("X", side=1, line=1, outer=FALSE)
 
 #' #Identify Critical Values and Plot f(X)=dX/dt and f'(X)
 #+ findCriticalValues, result='markup'
-critVals <- findCrit()
-critVals
+critVals <- sort(findCrit())
+critVals # these are the critical values of I --- at these values, the X equilibria emerge/ collid (which depends on whether I is increasing or decreasing)
 
 #+ figure2-fX-fprimeX, fig.height=6, fig.width=3.5, fig.cap="**Figure 2.** Black line is the rate of change in water phosphorus (dX/dt) vs X when the rate of change in sediment phosphorus is 0. The blue line is the derivative of the black line with respect to X."
 par(mfrow=c(2,1), mar=c(2,2,0.75,0.5), mgp=c(1,0.25,0), tcl=-0.25, ps=8, cex=1)
 Xvals <- seq(0,8, by=0.01)
 ddXdt <- d2Xdt(Xvals)
 for(i in 1:length(critVals)){
-	dXdt <- dX_dt_ofXIq(Xvals, I=sort(critVals)[i], q=unlist(formals(modelDeterministicXM)[c("q")]))
+	dXdt <- dX_dt_ofXI(Xvals, I=critVals[i], pars=c(q=unlist(formals(modelDeterministicXM)[c("q")])))
 	ylim <- range(c(dXdt, ddXdt))
 	plot(Xvals, dXdt, ylim=ylim, type='l', xlab='Water P', ylab="f(X) or f '(X)")
 	lines(Xvals, ddXdt, col='blue', type='l')
