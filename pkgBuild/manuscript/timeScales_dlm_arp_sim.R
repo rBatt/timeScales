@@ -462,5 +462,5 @@ plot(ts(tvmodp_nod_eigs, frequency=steps_per_day[1]), type='l', xlab="Time", yla
 #' #Session Information
 #+ sessionInfo, results='markup'
 difftime(Sys.time(), t1) # how long it took to run these models/ produce this report
-Sys.Date()
+Sys.time()
 sessionInfo()

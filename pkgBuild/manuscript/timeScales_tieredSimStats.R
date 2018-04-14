@@ -281,5 +281,5 @@ for(a in 1:length(tiered_agg_stat)){
 #' #Session Information
 #+ sessionInfo, results='markup'
 difftime(Sys.time(), t1) # how long it took to run these models/ produce this report
-Sys.Date()
+Sys.time()
 sessionInfo()

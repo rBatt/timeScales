@@ -317,5 +317,5 @@ for(i in 1:length(Is)){
 #' #Session Information
 #+ sessionInfo, results='markup'
 difftime(Sys.time(), t1) # how long it took to run these models/ produce this report
-Sys.Date()
+Sys.time()
 sessionInfo()
