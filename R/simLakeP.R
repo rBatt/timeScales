@@ -226,6 +226,125 @@ getEigs_df <- function(rootGrid_I, ...){
 }
 
 
+#' Change in X with respect to time as a function of X when dM/dt is 0
+#' 
+#' Take original model, set dM/dt to 0 and solve for M, plug into dX/dt, which gives us dX/dt as a function of X when dM/dt is 0.  Calculates the change in water P per unit time as a function of water P and parameters.
+#' 
+#' @param X numeric, water P
+#' @param I numeric, P input to lake
+#' @param pars optional named vector of parameters; parameters not supplied (or if pars is not specificied at all) will default to defaults in \code{\link{modelDeterministicXM}}
+#' 
+#' @return a numeric value indicating dX/dt
+#' @seealso \code{\link{modelDeterministicXM}}
+#' @export
+dX_dt_ofXI <- function(X, I, pars){
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	# pars <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b")])
+	for(i in 1:length(pars)){assign(names(pars)[i], unname(pars)[i])}
+
+	# h <- 0.15
+	# s <- 0.7
+	# m <- 2.4
+	# b <- 0.001
+	# r <- 0.019
+	
+	dXdt <- with(pars, {
+		R <- X^q/(m^q + X^q)
+		# dXdt <- I - X*(s+h) + r*R*((s*X)/(b+r*R))
+		I - X*(s+h) + r*R*((s*X)/(b+r*R))
+	})
+	
+	
+	# I - X*(s+h) + r*(X^q/(m^q + X^q))*((s*X)/(b+r*(X^q/(m^q + X^q))))
+	return(dXdt)
+}
+
+
+#' Derivative of dX/dt
+#' 
+#' Function that calculates the derivative of dX/dt when dM/dt is 0
+#' 
+#' @param X numeric, value of water P
+#' @param pars optional named vector of parameters; parameters not supplied here will be taken from defaults for \code{\link{modelDeterministicXM}}
+#' @return numeric vector
+#' @export
+d2Xdt <- function(X, pars){
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	with(as.list(pars), {
+		# (((b*r*s*q*X^q*m^q)/(X^q+m^q)^2)+((r*s*b*X^q)/(m^q+X^q))+((r^2*s*X^(2*q))/(m^q+X^q)^2))/(b^2 + ((2*b*r*X^q)/(m^q+X^q)) + ((r*X^q)/(m^q+X^q))^2) - s - h
+		(r*s*X^q*(b*(m^q*(q+1)+X^q)+r*X^q))/(b*m^q+b*X^q+r*X^q)^2 - s - h
+	})
+}
+
+
+#' Find Critical Values
+#' 
+#' Find the critical vlaues of phosphorus input (I) at which new equilibria in X either emerge or collide/ disappear
+#' 
+#' @param pars parameters to be supplied to \code{\link{modelDeterministicXM}}; if not supplied, default values for s, m, r, h, b, and q are used.
+#' @param critRange range of values in I over which to search for critical I
+#' @param tol numeric scalar. Tolerance value passed to \code{\link{optimize}} when search for equilibria in X (via f(X)=dX/dt) that match the X values in f'(X)=0.
+#' @param nGrid integer, scalar. Passed to \code{rootSolve::uniroot.all} as 'n', 'the number of subintervals in which the root is sought', when finding the values roots of dX/dt (the equilibria) and when finding the roots of f'(X) (the values of X for the critical values of I). This argument has a substantial effect on computation time. The default is relatively high.
+#' @param xRange range of X values to search when looking for roots of f(X) and f'(X).
+#' 
+#' @details A function f(X) = dX/dt gives the rate of change in water P (X) per unit time when the rate of change in sediment P is 0. Thus, when f(X)=0, the system is at equilibrium (both dX/dt and dM/dt are 0, thus system is not changing). The function f(X) also depends on system parameters, such as P input (I). The derivative of f(X) with respect to X is f'(X); f'(X) does not depend on I, and when f'(X)=0, f(X) is obviously not changing, meaning the rate of change in X is constant. Because f'(X) does not depend on I, the roots of f'(X) are values in X that do not change with I. When both f(X) and f'(X) are 0, I has reached a value at which the equilibrium values in X have either just emerged or are just about to dissappear. When a system exists at an equilibrium that is on the brink of disppearing, it is said to have reached a tipping point. The values of a parameter, such as I, that correspond to the these tipping points are the critical values of I. Note that a system may or may not be at a tipping point when a critical value of I is reached --- the tipping point only happens when the equilibrium value corresponding to the current state disappears, and so depends upon both the direction of change in the bifurcation parameter (I) as well as, in the case of bistability, the current state of the system (always depends on state of system, but state is implied by the parameter I in regions of I where there is only 1 equilibrium).  
+#'   
+#' This function works by first finding the values of X that satisfy f'(X) = 0; remember, f'(X) does not depend on I. These roots are found using \code{rootSolve::uniroot.all}. The next step involves finding equilibria of at various values of I (by searching through values of X that satisfy f(X)=0, and repeating this search for many values of I). Near a critical point, two equilibria will have very similar X values, and these values will also be very close the the values of X that satisfy f'(X)=0. Thus, the final step is to find the values of I that minimize the absolute deviation between the roots of f(X) (the equilibria) and the roots of f'(X). Note that when there are multiple roots, there are several absolute deviations; of these, the minimum is used. Unlike the first two steps, which use algorithms suited to finding when a function *crosses* the zero line, the last step involves a more generic optimization problem because the aforementioned absolute deviations, do not vary smoothly with I, forming discontinuities between the objective and the parameter to be optimized. Thus, for the last step \code{stats::optimize} is used to find the value of I that minimizes the minimum absolute deviation between the roots of f(X) and f'(X)
+#' 
+#' @return numeric, critical value(s)
+#' @export
+findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nGrid=1E6, xRange=c(0,100)){
+	requireNamespace("rootSolve", quietly=TRUE)
+	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
+	if(missing(pars)){
+		pars <- parsF
+	}else{
+		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
+	}
+	
+	x_targets <- rootSolve::uniroot.all(d2Xdt, xRange, n=nGrid)
+	target_dist <- function(I, target){
+		with(as.list(pars),{
+			diffs <- outer(rootSolve::uniroot.all(dX_dt_ofXI, xRange, I=I, pars=c(q=8), n=nGrid), target, FUN="-")
+			diffs[which.min(abs(diffs))]
+		})
+	}
+	
+	
+	# testI <- seq(0.1,2,by=0.01)
+	# tdist <- vector('numeric', length(testI))
+	# for(i in 1:length(testI)){
+	# 	tI <- testI[i]
+	# 	tdist[i] <- target_dist(tI, target=x_targets[1])
+	# }
+	# plot(testI, tdist) # I cannot use uniroot() b/c there are severe discontinuities; as uniroot.all warns, it is really bad at finding 0's that just barely touch the 0 line; I think the algorithm looks for a change in sign or something
+	# uniroot(target_dist, interval=c(critRange[1],critRange[2]), target=xt, maxiter=1E4, tol=.Machine$double.eps/2)
+	
+	abs_target_dist <- function(I, target){abs(target_dist(I=I, target=target))}
+	# optim(0.5, abs_target_dist, target=x_targets[1])
+	# optimize(f=abs_target_dist, interval=critRange, target=x_targets[1], tol=.Machine$double.eps^0.5)
+	
+	criticalValue <- vector('numeric', length(x_targets))
+	for(i in 1:length(x_targets)){
+		xt <- x_targets[i]
+		criticalValue[i] <- stats::optimize(f=abs_target_dist, interval=critRange, target=x_targets[i], tol=tol)$minimum
+	}
+	
+	return(criticalValue)
+}
+
+
+
 #' Stability Classification
 #' 
 #' Find equilibria for a model system of lake eutrophication and classify their stability

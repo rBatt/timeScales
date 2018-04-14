@@ -111,114 +111,16 @@ opts_chunk$set(
 
 #' #Functions for dX/dt=f(X)
 #' Note that for these functions, I will be including "commented-out" code prior to them that will serve as a template for generating the documentation for the function if I choose to include them in the timeScales R package.
-#' ##Function to calculate dX/dt
-#+ dXdt_function
-# Put whole model in terms of X (no M)
-# gives us dX/dt as a function of X when dM/dt is 0
-
-# Change in X with respect to time as a function of X
-# 
-# Calculates the change in water P per unit time as a function of water P and parameters
-# 
-# @param X numeric, water P
-# @param I numeric, P input to lake
-# @param q numeric, exponent affecting sharpness of transition
-# 
-# @return a numeric value indicating dX/dt
-# @seealso \code{\link{modelDeterministicXM}}
-# @export
-dX_dt_ofXI <- function(X, I, pars){
-	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
-	if(missing(pars)){
-		pars <- parsF
-	}else{
-		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
-	}
-	# pars <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b")])
-	for(i in 1:length(pars)){assign(names(pars)[i], unname(pars)[i])}
-
-	# h <- 0.15
-	# s <- 0.7
-	# m <- 2.4
-	# b <- 0.001
-	# r <- 0.019
-	
-	R <- X^q/(m^q + X^q)
-	dXdt <- I - X*(s+h) + r*R*((s*X)/(b+r*R))
-	# I - X*(s+h) + r*(X^q/(m^q + X^q))*((s*X)/(b+r*(X^q/(m^q + X^q))))
-	return(dXdt)
-}
+#' ##Calculate Example Value of dX/dt
+#+ dXdt
 dX_dt_ofXI(1, 1, pars=c(q=10))
 
-#' ##Function to Calculate d2X/dt2
+#' ##Calculate Example Values of f'(X)
 #+ secondDeriv, results='markup'
-d2Xdt <- function(X, pars){
-	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
-	if(missing(pars)){
-		pars <- parsF
-	}else{
-		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
-	}
-	with(as.list(pars), {
-		# (((b*r*s*q*X^q*m^q)/(X^q+m^q)^2)+((r*s*b*X^q)/(m^q+X^q))+((r^2*s*X^(2*q))/(m^q+X^q)^2))/(b^2 + ((2*b*r*X^q)/(m^q+X^q)) + ((r*X^q)/(m^q+X^q))^2) - s - h
-		(r*s*X^q*(b*(m^q*(q+1)+X^q)+r*X^q))/(b*m^q+b*X^q+r*X^q)^2 - s - h
-	})
-}
-
 uniroot.all(d2Xdt, c(0,10), n=1E4) # X values when I hits a critical value (where f'(dX/dt)==0)
 uniroot.all(dX_dt_ofXI, c(0,10), I=1, pars=c(q=8), n=1E4) # equilibrium val of X when I = 1
 uniroot.all(dX_dt_ofXI, c(0,10), I=0.997593522, pars=c(q=8), n=1E6) # at this val of I, two equilibria are very close to colliding; collision would happen as I is increasing
 uniroot.all(dX_dt_ofXI, c(0,10), I=0.519496874, pars=c(q=8), n=1E6) # different value of I, but again, two equilibria very close; collision would happen as I is decreasing
-
-
-
-#' ##Function to Find Critical Values
-#+ function-findCriticalValues, results='markup'
-findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nGrid=1E6, xRange=c(0,100)){
-	parsF <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b", "q")])
-	if(missing(pars)){
-		pars <- parsF
-	}else{
-		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
-	}
-	
-	# xRange <- c(dX_dt_ofXI(), dX_dt_ofXI())
-	# xRange <- c(0, 100)
-	
-	x_targets <- uniroot.all(d2Xdt, xRange, n=nGrid)
-	target_dist <- function(I, target){
-		with(as.list(pars),{
-			# uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4)
-			# outer(uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4), x_targets, FUN="-")
-			# sum(outer(uniroot.all(dX_dt_ofXI, c(0,10), I=I, q=q, n=1E4), target, FUN="-")^2)
-			diffs <- outer(uniroot.all(dX_dt_ofXI, xRange, I=I, pars=c(q=8), n=nGrid), target, FUN="-")
-			diffs[which.min(abs(diffs))]
-		})
-	}
-	
-	
-	# testI <- seq(0.1,2,by=0.01)
-	# tdist <- vector('numeric', length(testI))
-	# for(i in 1:length(testI)){
-	# 	tI <- testI[i]
-	# 	tdist[i] <- target_dist(tI, target=x_targets[1])
-	# }
-	# plot(testI, tdist) # I cannot use uniroot() b/c there are severe discontinuities; as uniroot.all warns, it is really bad at finding 0's that just barely touch the 0 line; I think the algorithm looks for a change in sign or something
-	# uniroot(target_dist, interval=c(critRange[1],critRange[2]), target=xt, maxiter=1E4, tol=.Machine$double.eps/2)
-	
-	abs_target_dist <- function(I, target){abs(target_dist(I=I, target=target))}
-	# optim(0.5, abs_target_dist, target=x_targets[1])
-	# optimize(f=abs_target_dist, interval=critRange, target=x_targets[1], tol=.Machine$double.eps^0.5)
-	
-	criticalValue <- vector('numeric', length(x_targets))
-	for(i in 1:length(x_targets)){
-		xt <- x_targets[i]
-		criticalValue[i] <- optimize(f=abs_target_dist, interval=critRange, target=x_targets[i], tol=tol)$minimum
-	}
-	
-	return(criticalValue)
-	# diff(sort(root))*0.5*c(-1,1)+sort(root) # a good range of critical values
-}
 
 
 #' ##Function for Plotting dX/dt vs X
