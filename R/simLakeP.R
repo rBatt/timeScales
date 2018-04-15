@@ -245,7 +245,7 @@ dX_dt_ofXI <- function(X, I, pars){
 		pars <- c(pars, parsF[!names(parsF)%in%names(pars)])
 	}
 	# pars <- unlist(formals(modelDeterministicXM)[c("s", "m", "r", "h", "b")])
-	for(i in 1:length(pars)){assign(names(pars)[i], unname(pars)[i])}
+	# for(i in 1:length(pars)){assign(names(pars)[i], unname(pars)[i])}
 
 	# h <- 0.15
 	# s <- 0.7
@@ -253,7 +253,7 @@ dX_dt_ofXI <- function(X, I, pars){
 	# b <- 0.001
 	# r <- 0.019
 	
-	dXdt <- with(pars, {
+	dXdt <- with(as.list(pars), {
 		R <- X^q/(m^q + X^q)
 		# dXdt <- I - X*(s+h) + r*R*((s*X)/(b+r*R))
 		I - X*(s+h) + r*R*((s*X)/(b+r*R))
@@ -315,7 +315,7 @@ findCrit <- function(pars, critRange=c(0.01,10), tol=.Machine$double.eps^0.5, nG
 	x_targets <- rootSolve::uniroot.all(d2Xdt, xRange, n=nGrid)
 	target_dist <- function(I, target){
 		with(as.list(pars),{
-			diffs <- outer(rootSolve::uniroot.all(dX_dt_ofXI, xRange, I=I, pars=c(q=8), n=nGrid), target, FUN="-")
+			diffs <- outer(rootSolve::uniroot.all(dX_dt_ofXI, xRange, I=I, pars=pars, n=nGrid), target, FUN="-")
 			diffs[which.min(abs(diffs))]
 		})
 	}
