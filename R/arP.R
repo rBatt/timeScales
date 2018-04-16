@@ -17,7 +17,7 @@ arP <- function(x, method=c("ar", "auto"), oType=c('leadEig', 'eigs', 'coefs'), 
 	oType <- match.arg(oType)
 	method <- match.arg(method)
 	if(method=="ar"){
-		ar_coefs <- stats::ar(x, order.max=floor(length(x)/10), method="yw")$ar
+		ar_coefs <- stats::ar(x, order.max=max(floor(length(x)/10),2), method="yw")$ar
 	}
 	if(method=="auto"){
 		mp <- max(floor(length(x)/20), 2)
