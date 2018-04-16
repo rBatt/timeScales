@@ -1,14 +1,14 @@
 Package: timeScales
 Title: Effect of Time Scale on Early Warning Statistics
-Version: 0.2
+Version: 0.2.1
 Authors@R: person("Ryan", "Batt", email = "battrd@gmail.com", role = c("aut", "cre"))
 Description: Regime shifts are abrupt changes in complex systems that are
     hard to predict, but their approach might be signaled by changes in the
     characteristics of the system's dynamical behavior. However, these statistics
     might be sensitive to the time scale of the observations from which they are
-    calculated. This pacakge uses a data set of high-frequency observations made
+    calculated. This pacakge uses simulations of long-term lake eutrophication and an empirical data set of high-frequency observations made
     during an experimentally-induced regime shift (algal bloom in a lake) to
-    explore the sensitivity of these statistics to the time scale of observation. This sensitivity is also explored using ecological simulations.
+    explore the sensitivity of these statistics to the time scale of observation.
     Furthermore, the analysis seeks to find an approach to calculating these
     statistics that will provide a warning that is robust to time scale, either by
     identifying a reliable time scale or by using a statistic that is generically
