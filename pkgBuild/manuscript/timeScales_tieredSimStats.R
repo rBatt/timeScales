@@ -169,9 +169,11 @@ tieredTSWrapper <- function(nTiers, nYears, iranges, dt=1/24, ...){
 
 #' ##Simulate Time Series
 #+ tieredSimulation
-nTiers <- 50
-nYears <- 2E2 # every nYears, the nutrient loading is increased
-iranges <- seq(0.01, 1.4, length.out=nTiers)
+critVals <- findCrit()
+nTiers <- 100
+nYears <- 5E2 # every nYears, the nutrient loading is increased]
+I0 <- round(sort(critVals)+c(-0.1, 0.1), 2)
+iranges <-  seq(I0[1], I0[2], length.out=nTiers) #seq(0.01, 1.4, length.out=nTiers)
 qVals <- c(2,5,8,10)
 tiered_list <- lapply(qVals, function(x){tieredTSWrapper(nTiers=nTiers, nYears=nYears, iranges=iranges, dt=1/24, pars=c(q=x), sin_amp=c(0,0))})
 names(tiered_list) <- paste0("q",qVals)
@@ -235,7 +237,7 @@ for(a in 1:length(tiered_agg)){
 }
 
 #' ##Plot AR(1) and ||Eig|| of AR(p) across Time Scales
-#+ figure3-ar1-eigARp-timeScales, fig.width=3.5, fig.height=6, fig.cap="**Figure 3.** Time series of the AR(1) coefficient (black line, left vertical axis) and the leading eigenvalue computed from the coefficients of an AR(p) model (blue line, right vertical axis). Statistics were calculated from tie series of water phosphorus (**Figure 2**). The horizontal axis is the value of P input (I), which serves as a control parameter inducing a bifurcation. For each panel, the time series was aggregated to a different time scale before calculating statistics: in the top panel, no aggregation was performed; in the lower panels, the time series was aggregated by averaging to yield the indicated number of samples per year (fractions indicate a sampling frequency < 1 year). Statistics were calulated for each 'tier' of P input (see **Figure 1**); thus, statistics were only applied to sections of the water P time series with constant parameter values, with each section being initated at equilibrium water P (and M, sediment P; not shown)."
+#+ figure3-ar1-eigARp-timeScales, fig.width=3.5, fig.height=6, fig.cap="**Figure 3.** Time series of the AR(1) coefficient (black line, left vertical axis) and the leading eigenvalue computed from the coefficients of an AR(p) model (blue line, right vertical axis). Statistics were calculated from tie series of water phosphorus (**Figure 2**). The horizontal axis is the value of P input (I), which serves as a control parameter inducing a bifurcation. For each panel, the time series was aggregated to a different time scale before calculating statistics: in the top panel, no aggregation was performed; in the lower panels, the time series was aggregated by averaging to yield the indicated number of samples per year (fractions indicate a sampling frequency < 1 year). Statistics were calulated for each 'tier' of P input (see **Figure 1**); thus, statistics were only applied to sections of the water P time series with constant parameter values, with each section being initated at equilibrium water P (and M, sediment P; not shown). The vertical dashed lines indicate the critical values of I at which equilibria in X either appear or disappear. At the start of the time series, there is only 1 stable point (a node; at low values of X). As I increases, another stable point (a node) emerges at higher values of X; the two equilibria are separated by a saddle point (unstable). The system has not yet reached a tipping point, because even though a new equilibrium point has arisen, the original equilibrium point still exists. However, as I reaches the second critical value, the original stable point collides with the saddle point, annihilating each other, leaving only the second stable point. This event is the critical transition, and the system undergoes an abrupt shift in state as it follows a trajectory to the second stable node."
 # dev.new(width=3.5, height=6)
 par(mfrow=c(4, 1), mar=c(1.2,2.5,0.75,2), mgp=c(1,0.25,0), oma=c(1,0.1,0.5,0.1), tcl=-0.25, ps=8, cex=1)
 for(a in 1:length(tiered_agg_stat)){
@@ -249,10 +251,11 @@ for(a in 1:length(tiered_agg_stat)){
 	# ylab2 <- bquote("AR(" .(minP) <= p <= .(maxP) ") ||Eig||") #"AR(p) ||Eig||"
 	ta[,plot(I, AR1, type='l', xlab='', ylab=ylab1)]
 	par(new=TRUE)
-	ta[,plot(I, ARpEig, type='l', col='blue', xlab='', ylab='', xaxt='n', yaxt='n')]
+	ta[,plot(I, ARpEig, type='l', col=adjustcolor('blue', 0.5), xlab='', ylab='', xaxt='n', yaxt='n')]
 	axis(side=4)
 	mtext(ylab2, side=4, line=1)
 	mtext(paste0("Scale=", 1/dt/as.numeric(aggVal), " obs. per yr"), side=2, line=1.75, font=2)
+	abline(v=critVals, lty=2)
 	if(a==1){
 		legend('top', lty=1, col=c("black","blue"), legend=c("AR(1)","AR(p) ||Eig||"), ncol=2, bty='n', inset=-0.275, xpd=TRUE)
 	}

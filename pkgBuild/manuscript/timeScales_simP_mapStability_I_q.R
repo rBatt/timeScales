@@ -202,7 +202,7 @@ for(i in 1:length(critVals)){
 #+ figure3-phasePortrait, fig.width=6, fig.height=6, fig.cap="**Figure 3.** A phase portrait of the system for varying values of P input when q=8. The vector field (indicating the direction and speed that the system moves through phase space at that point) is represented by gray arrows. Nullclines are represented red and blue lines, indicating where dX/dt and dM/dt are equal to zero, respectively.  Trajectories starting at arbitrary initial points (open diamonds) and continuing the along the accompanying solid black line indicate how the system moves from the initial point through phase space for 50 years. Equilibria are indicated by points: solid filled circle is a stable node, an 'X' is a saddle point. An equilibrium occurs whereever the nullclines cross. The different panels correspond to different values of P loading (I). "
 par(mfrow=c(2,2), mar=c(2,2,1,0.5), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=8)
 # Is <- c(0.75, 1, 1.25, 1.5)
-Is0 <- diff(sort(critVals))*0.5*c(-1,1)+sort(critVals) # a good range of critical values
+# Is0 <- diff(sort(critVals))*0.5*c(-1,1)+sort(critVals) # a good range of critical values
 # Is <- round(c(Is0[1], critVals, Is0[2])-0.1,2)
 Is <- round(sort(c(outer(critVals, c(-0.1, .1), FUN='-'))), 2)
 for(i in 1:length(Is)){
