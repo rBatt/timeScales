@@ -5,7 +5,7 @@
 \title{Rolling Window ACF}
 \usage{
 acf_roll(x, width = 28 * 24, by = 12, lag.max = width/14,
-  DETREND = FALSE, ...)
+  DETREND = FALSE, mp = 1, mf = 2, mi = 1, ...)
 }
 \arguments{
 \item{x}{the time series}
@@ -17,6 +17,8 @@ acf_roll(x, width = 28 * 24, by = 12, lag.max = width/14,
 \item{lag.max}{integer indicating the maximum lag at which to calculate the ACF (as in code{stats::acf})}
 
 \item{DETREND}{whether or not to perform AICc-selected detrending; see \code{\link{detrendR}}}
+
+\item{mp, mf, mi}{maximum order of polynomial, Fourier, and interaction}
 
 \item{...}{unused}
 }

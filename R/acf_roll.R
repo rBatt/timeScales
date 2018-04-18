@@ -19,11 +19,12 @@ acf_cor <- function(x, ...){
 #' @param by increment window by this many time steps (n observations)
 #' @param lag.max integer indicating the maximum lag at which to calculate the ACF (as in code{stats::acf})
 #' @param DETREND whether or not to perform AICc-selected detrending; see \code{\link{detrendR}}
+#' @param mp,mf,mi maximum order of polynomial, Fourier, and interaction
 #' @param ... unused
 #' 
 #' @seealso \code{stats::ts} \code{forecast::fourier} \code{\link{trend_xreg}} \code{\link{interaction_xreg}} 
 #' @export
-acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...){
+acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, mp=1, mf=2, mi=1, ...){
 	
 	if(by > 1){
 		mat <- sub_embed(x, width=width, n=by) # sub_embed is for roll win, so subset 'n' is actually window 'by'
@@ -34,7 +35,7 @@ acf_roll <- function(x, width=28*24, by=12, lag.max=width/14, DETREND=FALSE, ...
 	if(DETREND){
 		detrend2 <- function(z){
 			z <- stats::ts(z, frequency=stats::frequency(x))
-			as.numeric(detrendR(z, max_poly=2, max_fourier=2, max_interaction=2))
+			as.numeric(detrendR(z, max_poly=mp, max_fourier=mf, max_interaction=mi))
 		}
 		mat <- t(apply(X=mat, MARGIN=1, FUN=detrend2))
 	}
