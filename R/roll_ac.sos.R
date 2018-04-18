@@ -14,13 +14,14 @@
 #' @param subStat logical, should the statistic be calculated for a subset of the windowed data?
 #' @param DETREND logical, detrend or no? Pass to \code{\link{roll_ts}}. Also see \code{\link{detrendR}}.
 #' @param save_output logical, save detrending output to desktop?
+#' @param mp,mf,mi maximum order of polynomial, Fourier, and interaction
 #' 
 #' @details I need to fill this in. One thing to remember is that 28-day nominal window size is hard-coded into this function right now.
 #' 
 #' @return list or list of data.tables containing rolling window statistic
 #' @import data.table
 #' @export
-roll_ac.sos <- function(X, window_elapsed, fit_arP=FALSE, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE, DETREND=FALSE, save_output=FALSE){
+roll_ac.sos <- function(X, window_elapsed, fit_arP=FALSE, by=1, n=1, phase=1, vars, lakes, subWindow=FALSE, subStat=FALSE, DETREND=FALSE, save_output=FALSE, mp=1, mf=floor(min(stats::frequency(y)/2, 2)), mi=if(mf>0){2}else{0}){
 	if(any(unlist(n)!=1) & fit_arP){
 		stop("some n>1 and arP is TRUE; Cannot do AR(p) models on downsampled data")
 	}
@@ -76,7 +77,7 @@ roll_ac.sos <- function(X, window_elapsed, fit_arP=FALSE, by=1, n=1, phase=1, va
 	
 	# helper function to apply rolling statistic
 	roll_ac <- function(X2, nsteps, by, n){
-		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase, DETREND=DETREND, save_output=save_output)}, by=c("lake","variable")]
+		X2[variable%in%vars & lake%in%lakes][,j={roll_ts(y=y, x=x, FUN=funUse, width=nsteps, by=by, n=n, phase=phase, DETREND=DETREND, mp=mp, mf=mf, mi=mi, save_output=save_output)}, by=c("lake","variable")]
 	}
 	out <- mapply(roll_ac, X, window_elapsed, by, n, SIMPLIFY=FALSE)
 	out

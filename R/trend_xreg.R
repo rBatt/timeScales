@@ -12,12 +12,15 @@
 #' @export
 trend_xreg <- function(exp.order, y){
 	x <- seq_along(y)
-	hnames <- paste0("trend",1:exp.order)
+	hnames <- paste0("trend",0:exp.order)
 	
 	raise_order <- function(o){
 		matrix(x^o, ncol=1)
 	}
-	omat <- sapply(1:exp.order, raise_order)
+	omat <- sapply(0:exp.order, raise_order)
 	dimnames(omat) <- list(NULL, hnames)
-	return(scale(omat))
+	if(ncol(omat)>1){
+		omat[,2:ncol(omat)] <- scale(omat[,2:ncol(omat)])
+	}
+	return(omat)
 }

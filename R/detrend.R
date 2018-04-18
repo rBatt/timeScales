@@ -36,7 +36,12 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 		max_interaction <- 0
 	}
 	
-	stopifnot(max_poly >= 1)
+	if(max_interaction > max_poly){
+		warning("max_interaction > max_poly, but interaction order should be no greater than temporal polynomial order. Setting max_interaction equal to max_poly.")
+		max_interaction <- max_poly
+	}
+	
+	# stopifnot(max_poly >= 1)
 	
 	# polynomial matrix
 	full_poly <- trend_xreg(max_poly, x)
@@ -53,7 +58,7 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 	
 	# interaction matrix
 	if(max_interaction > 0){
-		full_interaction_list <- interaction_xreg(p=full_poly, f=full_fourier)
+		full_interaction_list <- interaction_xreg(p=as.matrix(full_poly[,-1]), f=full_fourier)
 	}
 	
 	# function to get model matrix
@@ -61,11 +66,12 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 		# expects full_poly and full_fourier objects to exist in global/ higher level envir
 		
 		# polynomial
-		if(p > 0){
-			pmm <- full_poly[,1:p, drop=FALSE]
-		}
+		# if(p > 0){
+			pmm <- full_poly[,(0:p)+1, drop=FALSE]
+		# }
 		if(f ==0){ # if f ==0, then i should also be 0
-			return(cbind(intercept=1, pmm))
+			# return(cbind(intercept=1, pmm))
+			return(pmm)
 		}
 		
 		# fourier
@@ -74,12 +80,13 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 		}
 		fmm <- get_fmm(full_fourier, f)
 		if(p == 0){
-			return(cbind(intercept=1, fmm))
+			return(cbind(pmm, fmm))
 		}
 		
 		# subset full interaction matrix to correct order
 		if(i == 0){
-			mm <- cbind(intercept=1, pmm, fmm)
+			# mm <- cbind(intercept=1, pmm, fmm)
+			mm <- cbind(pmm, fmm)
 		}else{
 			imm_list <- lapply(full_interaction_list[1:i], get_fmm, f=f)
 			for(l in 1:length(imm_list)){
@@ -87,13 +94,14 @@ detrendR <- function(x, max_poly=6, max_fourier=6, max_interaction=3, returnType
 			}
 			imm <- do.call(cbind, imm_list)
 		
-			mm <- cbind(intercept=1, pmm, fmm, imm)
+			# mm <- cbind(intercept=1, pmm, fmm, imm)
+			mm <- cbind(pmm, fmm, imm)
 		}
 		return(mm)
 	}
 	
 	# combinations of model parameters in terms of orders of poly, fourier, and interaction
-	pfi_combos0 <- expand.grid(p=1:max_poly, f=0:max_fourier, i=0:max_interaction)
+	pfi_combos0 <- expand.grid(p=0:max_poly, f=0:max_fourier, i=0:max_interaction)
 	limit_interactionOrder <- (pfi_combos0[,3] <= pfi_combos0[,1]) & (pmin(pfi_combos0[,3], 1) <= pfi_combos0[,2]) # the second piece of logic is intended to avoid an interaction when no fourier terms are selected #& pfi_combos0[,3] <= pfi_combos0[,2]
 	pfi_combos <- pfi_combos0[limit_interactionOrder,]
 	

@@ -15,7 +15,7 @@
 #' ampSlope <- 0.25
 #' ts_time <- 1:(freq*nDays)
 #' sineVec <- sqrt(ts_time)*ampSlope*sin(ts_time*(1/freq)*2*pi)
-#' polyVec <- c(trend_xreg(2, ts_time)%*%c(0.75*3.5, -0.78*3))
+#' polyVec <- c(trend_xreg(2, ts_time)%*%c(1, 0.75*3.5, -0.78*3))
 #' determVec <- sineVec + polyVec
 #' noiseVec <- rnorm(freq*nDays, sd=0.25)
 #' tsVec <- ts(determVec+noiseVec, frequency=freq)
