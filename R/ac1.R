@@ -7,7 +7,7 @@
 #' 
 #' @return AR(1) coefficient
 #' @export
-ac1 <- function(x, trend.rm=TRUE, ...){	
+ac1 <- function(x, trend.rm=FALSE, ...){	
 	
 	if(trend.rm){
 		if(all(is.na(x))){return(NA)}

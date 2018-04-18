@@ -5,7 +5,7 @@
 \title{AC1
 Calculate first-order autocorrelation}
 \usage{
-ac1(x, trend.rm = TRUE, ...)
+ac1(x, trend.rm = FALSE, ...)
 }
 \arguments{
 \item{x}{numeric vector of values of a regular (equally-spaced) time series}
