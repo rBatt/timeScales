@@ -12,7 +12,7 @@ sos_data
 High-frequency in situ lake data giving temperature and fluorescence parameters.
 }
 \details{
-Sonde data from 3 experimental lakes in Son of Squeal experiment. This is from the "Daily_SoS_All_Orgd&Cleaned_Data_2015.csv" file from Cascade website.
+Sonde data from 3 experimental lakes in Son of Squeal experiment. This is from the "Daily_SoS_All_Orgd&Cleaned_Data_2015.csv" file from Cascade website. The measurements were made by fluorometers on board a Hydrolab sonde at a depth of approximately 0.5 meters. Peter and Paul Lakes are located on the property of the University of Notre Dame Environmental Research Center, in northern Wisconsin and the Upper Peninsula of Michigan.
 
 \tabular{lll}{
 \code{Year} \tab integer \tab calendar year of sample \cr
