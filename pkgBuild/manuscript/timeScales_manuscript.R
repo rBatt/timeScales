@@ -237,6 +237,7 @@ par(mfrow=c(2,2), mar=c(2,2,1,0.5), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=9, cex
 for(i in 1:length(Ivals4)){
 	timeScales::phasePortrait(pars=c(I=Ivals4[i]), nFlow=10, addLeg=(i==2))
 	mtext(paste0("I = ",round(Ivals4[i],2)), side=3, line=0, adj=0, font=2)
+	text(paste0(LETTERS[i],')'), x=15.5, y=-0.5, font=2)
 }
 #'   
 #' \FloatBarrier  
