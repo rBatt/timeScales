@@ -58,6 +58,8 @@ o_f <- paste(doc_type, "document", sep="_")
 
 # problem with pdflatex in El Capitan? It might be directories. Check http://pages.uoregon.edu/koch/FixLink.pkg
 
+figure_folder <- "~/Documents/School&Work/epaPost/timeScales/pkgBuild/manuscript/final_figures"
+
 # render!
 # rmarkdown::render(
 # 	"~/Documents/School&Work/epaPost/timeScales/pkgBuild/manuscript/timeScales_manuscript.R",
@@ -230,6 +232,8 @@ tieredTSWrapper <- function(nTiers, nYears, iranges, dt=1/24, ...){
 
 #' ##Figure 1: Phase Portrait
 #+ figure1-phasePortrait, fig.width=6, fig.height=6, fig.cap="**Figure 1.** A phase portrait of the system for varying values of P input when q=8. The vector field (indicating the direction and speed that the system moves through phase space at that point) is represented by gray arrows. Nullclines are represented red and blue lines, indicating where dX/dt and dM/dt are equal to zero, respectively.  Trajectories starting at arbitrary initial points (open diamonds) and continuing the along the accompanying solid black line indicate how the system moves from the initial point through phase space for 50 years. Equilibria are indicated by points: solid filled circle is a stable node, an 'X' is a saddle point. An equilibrium occurs whereever the nullclines cross. The different panels correspond to different values of P loading (I). "
+# tiff(paste0(figure_folder,"/figure1_phase_portrait.tiff"), width=6, height=6, units='in', res=300, compression='lzw')
+# pdf(paste0(figure_folder,"/figure1_phase_portrait.pdf"), width=6, height=6)
 par(mfrow=c(2,2), mar=c(2,2,1,0.5), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=9, cex.axis=0.85)
 # Is <- c(0.75, 1, 1.25, 1.5)
 # Is0 <- diff(sort(critVals))*0.5*c(-1,1)+sort(critVals) # a good range of critical values
@@ -239,6 +243,7 @@ for(i in 1:length(Ivals4)){
 	mtext(paste0("I = ",round(Ivals4[i],2)), side=3, line=0, adj=0, font=2)
 	text(paste0(LETTERS[i],')'), x=15.5, y=-0.5, font=2)
 }
+# dev.off()
 #'   
 #' \FloatBarrier  
 #'   
@@ -327,6 +332,8 @@ cont_cv_ind <- lakePm[variable=="I",(apply(outer(value,critVals, FUN='-'),2,func
 cont_critTimes <- lakePm[cont_cv_ind,as.numeric(doy)]
 
 
+# tiff(paste0(figure_folder,"/figure2_sim_ts.tiff"), width=3, height=5, units='in', res=300, compression='lzw')
+# pdf(paste0(figure_folder,"/figure2_sim_ts.pdf"), width=3, height=5)
 par(mfcol=c(3,2), mar=c(1.85,1.5,0.5,0.25), oma=c(0.1,0.35,0.3,0.1), mgp=c(0.85,0.15,0), tcl=-0.15, cex=1, ps=9, ylbias=0.3, cex.axis=0.85)
 
 tieredSim[,plot(timeVec, I, type='l', xlab='Year', ylab='')]
@@ -345,6 +352,8 @@ mtext("Linear", side=3, line=-0.2, font=2)
 lakePm[variable=="X", plot(ts(value, freq=1/dt), xlab='Year', ylab="")]
 abline(v=cont_critTimes, lty=2)
 acf(lakePm[variable=="X",as.numeric(value)], lag.max=win_days/dt, ylab="")
+
+# dev.off()
 
 #'   
 #' \FloatBarrier  
@@ -394,6 +403,8 @@ critTimes <- tieredSim[critTimes_ind, timeVec[1], by="I"][,V1]
 cont_cv_ind <- lakePm[variable=="I",(apply(outer(value,critVals, FUN='-'),2,function(x)which.min(abs(x))))] #apply(outer(Ivals,critVals, FUN='-'), 2, function(x)which.min(abs(x)))
 cont_critTimes <- lakePm[cont_cv_ind,as.numeric(doy)]
 
+# tiff(paste0(figure_folder,"/figure3_sim_ac.tiff"), width=3, height=5, units='in', res=300)
+# pdf(paste0(figure_folder,"/figure3_sim_ac.pdf"), width=3, height=5)
 par(mfcol=c(4,2), mar=c(1.5,1.8,0.25,0.25), oma=c(0.5,0.8,0.5,0.1), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=9)
 
 for(i in 1:length(tiered_agg_stat)){
@@ -401,7 +412,7 @@ for(i in 1:length(tiered_agg_stat)){
 	ty <- paste0(1/dt/as.numeric(gsub("agg","",names(tiered_agg_stat)[i])), " obs per yr")
 	ta[,plot(x, AR1, type='l', ylab=ty, xlab="")]
 	if(i==1){
-		mtext("Tiered", side=3, line=-0.2, xpd=TRUE, font=2)
+		mtext("Tiered", side=3, line=-0.1, xpd=TRUE, font=2)
 	}
 	abline(v=critTimes, lty=2)
 }
@@ -414,12 +425,13 @@ for(i in 1:length(simAC)){
 	# ty <- paste0(1/dt/as.numeric(gsub("agg","",names(simAC)[i])), " obs per yr")
 	ta[,plot(x, y, type='l', ylab="", xlab="")]
 	if(i==1){
-		mtext("Linear", side=3, line=-0.2, xpd=TRUE, font=2)
+		mtext("Linear", side=3, line=-0.1, xpd=TRUE, font=2)
 	}
 	abline(v=cont_critTimes, lty=2)
 }
 mtext("Year", side=1, line=1)
 
+# dev.off()
 
 # plot standard deviation for the 'linear' simulation
 # par(mfrow=c(4,1), mar=c(2,2,0.5,0.5), mgp=c(1,0.25,0), tcl=-0.15, cex=1, ps=9)
@@ -581,6 +593,7 @@ names(sos_agg) <- paste0("agg", agg_steps)
 #'   
 #' ##Figure 4: Time Series & ACF
 #+ figure4-fieldTimeSeries-ACF, fig.width=3.5, fig.height=3.5, fig.cap="**Figure 4.** Time series and autocorrelation function of high frequency chlorophyll fluorescence measurements in Peter Lake (manipulated) and Paul Lake (reference) in 2015. The red vertical dashed line indicates the day when fertilization was halted in Peter Lake.", results='hide'
+# pdf(paste0(figure_folder,"/figure4_ts.pdf"), width=3.5, height=3.5)
 par(mfrow=c(2,2), mar=c(1.75, 1.0, 0.25, 0.25), oma=c(0,0.75,0.5,0), mgp=c(1, 0.2, 0), tcl=-0.15, ps=9, cex=1, cex.axis=0.85, ylbias=0.3)
 sosm[lake=="Paul" & variable==vars, plot(doy, (value), xlim=doy_range, col="black", type='l', xlab="", ylab="")]
 mtext(sosm[,field_ylab[variable[1]]], side=2, line=0.85)
@@ -597,6 +610,8 @@ mtext("ACF", side=2, line=0.85)
 mtext("Lag", side=1, line=0.85)
 plot_acf(ln='Peter', v=vars, ylab="", main="", xlab="")
 mtext("Lag", side=1, line=0.85)
+
+# dev.off()
 
 #'   
 #'   
@@ -615,8 +630,10 @@ ylabs <- paste0("\nAR(1) (", sapply(agg_steps, interval_name), ")")
 xlabs <- rep("", length(agg_steps))
 xlabs[length(agg_steps)] <- "Day of Year"
 
+# pdf(paste0(figure_folder,"/figure5_ts_ac.pdf"), width=3, height=5)
 par(mfrow=c(length(agg_steps),2), mar=c(1.25,1.25,0.25,0.25), oma=c(0.75,0.75,0.25,0.1), cex=1, tcl=-0.15, mgp=c(1,0.2,0), ps=9, ylbias=0.3, cex.axis=0.85)
 invisible(mapply(plotac, X=AC_list, ylab=ylabs, xlab=xlabs))
+# dev.off()
 #'   
 #' \FloatBarrier  
 #'   
@@ -650,10 +667,13 @@ add_legend2 <- function(inputDat){
 add_panel_lab_main <- function(let){mtext(let, side=3, line=-0.85, adj=0.01, font=2, cex=1.2)}
 
 #      Plot Heat Maps ----
+# cairo_pdf(paste0(figure_folder,"/figure6_heat_map_acf.pdf"), width=6, height=7)
+# png(paste0(figure_folder,"/figure6_heat_map_acf.png"), width=6, height=7, units='in', res=300)
 layout(lay_mat)
 par(mar=c(1.5,2,1,3), oma=c(0.5,0,0,0), mgp=c(1,0.2,0), tcl=-0.15, ps=9, cex=1, las=0, cex.axis=0.85)
 acf_map(out_L, xlab="", ylab="Time scale", main="Paul Lake (reference)", yaxt='n')
 add_axis(out_L)
+
 # add_legend(out_L)
 zrange <- range(c(range(out_L), range(out_R), range(out_R-out_L)))
 add_legend2(out_L)
@@ -696,6 +716,7 @@ for(s in nScales:1){ # iterate through time scales more slowly than throw main p
 	}
 }
 
+# dev.off()
 
 
 #'   
